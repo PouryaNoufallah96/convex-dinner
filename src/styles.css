@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+body {
+  @apply m-0 bg-gray-950 text-gray-100;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-600;
+}
+
+/* Smooth animations */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-amber-500/50;
+}
+
+/* Prose styles for AI messages */
+.prose {
+  @apply text-gray-300;
+}
+
+.prose strong {
+  @apply text-amber-400;
+}
+
+.prose code {
+  @apply bg-gray-800 px-1 py-0.5 rounded text-amber-300;
+}
+
+.prose a {
+  @apply text-amber-500 hover:text-amber-400;
+}
+
+.prose ul,
+.prose ol {
+  @apply pl-4;
+}
+
+.prose li {
+  @apply my-1;
+}
+
+/* Animation for loading states */
+@keyframes pulse-amber {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-amber {
+  animation: pulse-amber 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
