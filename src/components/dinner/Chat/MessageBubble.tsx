@@ -1,4 +1,4 @@
-import { Bot, User } from "lucide-react";
+import { Bot } from "lucide-react";
 import { Streamdown } from "streamdown";
 
 interface MessageBubbleProps {

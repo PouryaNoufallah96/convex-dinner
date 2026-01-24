@@ -1,19 +1,21 @@
-import MessageList from './MessageList'
-import ChatInput from './ChatInput'
-import type { DinnerChatMessages } from '@/lib/dinner-chat-hook'
+import MessageList from "./MessageList";
+import ChatInput from "./ChatInput";
+import type { UIMessage } from "@/lib/dinner-chat-hook";
 
 interface ChatPanelProps {
-  visitorName: string
-  onSendToAi: (message: string) => void
-  isAiLoading: boolean
-  aiMessages?: DinnerChatMessages
+  visitorName: string;
+  onSendMessage: (message: string) => void;
+  isLoading: boolean;
+  isStreaming?: boolean;
+  messages: UIMessage[];
 }
 
 export default function ChatPanel({
   visitorName,
-  onSendToAi,
-  isAiLoading,
-  aiMessages,
+  onSendMessage,
+  isLoading,
+  isStreaming,
+  messages,
 }: ChatPanelProps) {
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg border border-gray-800">
@@ -22,15 +24,18 @@ export default function ChatPanel({
         <p className="text-sm text-gray-400">
           Chat with friends and @ai to find restaurants
         </p>
+        {isStreaming && (
+          <p className="text-xs text-amber-500 mt-1">AI is typing...</p>
+        )}
       </div>
-      <MessageList aiMessages={aiMessages} />
+      <MessageList messages={messages} isLoading={isLoading} />
       <ChatInput
         visitorName={visitorName}
-        onSendToAi={onSendToAi}
-        isAiLoading={isAiLoading}
+        onSendToAi={onSendMessage}
+        isAiLoading={isLoading || isStreaming}
       />
     </div>
-  )
+  );
 }
 
-export { MessageList, ChatInput }
+export { MessageList, ChatInput };

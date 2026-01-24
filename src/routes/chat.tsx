@@ -29,32 +29,33 @@ function ChatRoom() {
   const [mapCenter, setMapCenter] = useState(DEFAULT_LOCATION);
   const [mapZoom, setMapZoom] = useState(13);
   const [highlightedPlaceId, setHighlightedPlaceId] = useState<string | null>(
-    null,
+    null
   );
 
   // Get shortlist for map pins
   const shortlist = useQuery(api.shortlist.list);
-  const clearMessages = useMutation(api.messages.clear);
+  const clearChat = useMutation(api.chat.clearChat);
   const clearShortlist = useMutation(api.shortlist.clear);
 
-  // AI chat hook with client tool handlers
-  const {
-    messages: aiMessages,
-    sendMessage: sendToAi,
-    isLoading: isAiLoading,
-  } = useDinnerChat(visitorName, userLocation, {
-    onShowOnMap: ({ lat, lng, placeId, zoom }) => {
-      setMapCenter({ lat, lng });
-      setMapZoom(zoom || 15);
-      setHighlightedPlaceId(placeId);
-    },
-    onShowRestaurantCard: ({ placeId }) => {
-      setHighlightedPlaceId(placeId);
-    },
-    onHighlightShortlistItem: ({ placeId }) => {
-      setHighlightedPlaceId(placeId);
-    },
-  });
+  // Multi-user chat hook with client tool handlers
+  // Messages come from Convex subscription - all users see the same messages
+  const { messages, sendMessage, isLoading, isStreaming } = useDinnerChat(
+    visitorName,
+    userLocation,
+    {
+      onShowOnMap: ({ lat, lng, placeId, name, zoom }) => {
+        setMapCenter({ lat, lng, name: name || "Restaurant" });
+        setMapZoom(zoom || 15);
+        setHighlightedPlaceId(placeId);
+      },
+      onShowRestaurantCard: ({ placeId }) => {
+        setHighlightedPlaceId(placeId);
+      },
+      onHighlightShortlistItem: ({ placeId }) => {
+        setHighlightedPlaceId(placeId);
+      },
+    }
+  );
 
   // Initialize visitor on mount
   useEffect(() => {
@@ -70,13 +71,12 @@ function ChatRoom() {
     getCachedLocation().then(setUserLocation);
   }, [navigate]);
 
-  // Handle sending message to AI
-  const handleSendToAi = useCallback(
+  // Handle sending message
+  const handleSendMessage = useCallback(
     (message: string) => {
-      // Send to AI for processing - response will come via aiMessages
-      sendToAi(message);
+      sendMessage(message);
     },
-    [sendToAi],
+    [sendMessage]
   );
 
   // Handle logout
@@ -88,7 +88,7 @@ function ChatRoom() {
   // Handle reset (clear all data)
   const handleReset = async () => {
     if (confirm("Clear all messages and shortlist? This affects everyone!")) {
-      await Promise.all([clearMessages(), clearShortlist()]);
+      await Promise.all([clearChat(), clearShortlist()]);
     }
   };
 
@@ -150,9 +150,10 @@ function ChatRoom() {
           <div className="h-full min-h-0">
             <ChatPanel
               visitorName={visitorName}
-              onSendToAi={handleSendToAi}
-              isAiLoading={isAiLoading}
-              aiMessages={aiMessages}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              isStreaming={isStreaming}
+              messages={messages}
             />
           </div>
 
@@ -177,10 +178,14 @@ function ChatRoom() {
                 highlightedPlaceId={highlightedPlaceId}
                 onCardClick={(placeId) => {
                   const restaurant = shortlist?.find(
-                    (r) => r.placeId === placeId,
+                    (r) => r.placeId === placeId
                   );
                   if (restaurant) {
-                    setMapCenter({ lat: restaurant.lat, lng: restaurant.lng });
+                    setMapCenter({
+                      lat: restaurant.lat,
+                      lng: restaurant.lng,
+                      name: restaurant.name,
+                    });
                     setMapZoom(15);
                     setHighlightedPlaceId(placeId);
                   }

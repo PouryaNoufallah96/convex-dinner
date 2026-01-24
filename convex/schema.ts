@@ -2,7 +2,13 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 export default defineSchema({
-  // Chat messages
+  // Shared thread reference for the dinner chat
+  // All users share a single thread for multi-user chat
+  dinnerThread: defineTable({
+    threadId: v.string(),
+  }),
+
+  // Legacy chat messages (can be removed once migration is complete)
   messages: defineTable({
     senderName: v.string(),
     content: v.string(),

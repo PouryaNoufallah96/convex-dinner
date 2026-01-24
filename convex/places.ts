@@ -1,4 +1,4 @@
-import { action } from './_generated/server'
+import { action, internalAction } from './_generated/server'
 import { v } from 'convex/values'
 
 // Support both GOOGLE_API_KEY and GOOGLE_PLACES_API_KEY for flexibility
@@ -174,6 +174,139 @@ export const getDetails = action({
   args: { placeId: v.string() },
   handler: async (_ctx, { placeId }) => {
     // If mock place or no API key, return mock details
+    if (!GOOGLE_API_KEY || placeId.startsWith('mock-')) {
+      const mockRestaurant = MOCK_RESTAURANTS.find(
+        (r) => r.placeId === placeId
+      )
+      if (mockRestaurant) {
+        return {
+          ...mockRestaurant,
+          hours: [
+            'Monday: 11:00 AM – 10:00 PM',
+            'Tuesday: 11:00 AM – 10:00 PM',
+            'Wednesday: 11:00 AM – 10:00 PM',
+            'Thursday: 11:00 AM – 10:00 PM',
+            'Friday: 11:00 AM – 11:00 PM',
+            'Saturday: 10:00 AM – 11:00 PM',
+            'Sunday: 10:00 AM – 9:00 PM',
+          ],
+          reviews: [
+            {
+              rating: 5,
+              text: 'Amazing food! Highly recommend.',
+              author: 'Local Guide',
+            },
+            {
+              rating: 4,
+              text: 'Great atmosphere and friendly staff.',
+              author: 'Food Lover',
+            },
+          ],
+          phone: '(503) 555-0123',
+          website: 'https://example.com',
+        }
+      }
+    }
+
+    const response = await fetch(
+      `https://places.googleapis.com/v1/places/${placeId}`,
+      {
+        headers: {
+          'X-Goog-Api-Key': GOOGLE_API_KEY!,
+          'X-Goog-FieldMask':
+            'id,displayName,formattedAddress,location,rating,priceLevel,currentOpeningHours,reviews,photos,websiteUri,nationalPhoneNumber',
+        },
+      }
+    )
+
+    const place = await response.json()
+
+    return {
+      placeId: place.id,
+      name: place.displayName?.text,
+      address: place.formattedAddress,
+      lat: place.location?.latitude,
+      lng: place.location?.longitude,
+      rating: place.rating,
+      priceLevel: place.priceLevel ? parsePriceLevel(place.priceLevel) : null,
+      hours: place.currentOpeningHours?.weekdayDescriptions || [],
+      reviews: (place.reviews || []).slice(0, 3).map((r: any) => ({
+        rating: r.rating,
+        text: r.text?.text,
+        author: r.authorAttribution?.displayName,
+      })),
+      phone: place.nationalPhoneNumber,
+      website: place.websiteUri,
+    }
+  },
+})
+
+// Internal versions for calling from other actions (e.g., from the AI agent)
+export const searchNearbyInternal = internalAction({
+  args: {
+    query: v.string(),
+    lat: v.number(),
+    lng: v.number(),
+    radius: v.optional(v.number()),
+  },
+  handler: async (_ctx, { query, lat, lng, radius = 5000 }) => {
+    if (!GOOGLE_API_KEY) {
+      console.log('Using mock restaurant data (no GOOGLE_PLACES_API_KEY)')
+      const lowerQuery = query.toLowerCase()
+      return MOCK_RESTAURANTS.filter(
+        (r) =>
+          r.name.toLowerCase().includes(lowerQuery) ||
+          r.cuisine?.toLowerCase().includes(lowerQuery) ||
+          lowerQuery.includes('restaurant') ||
+          lowerQuery.includes('food') ||
+          lowerQuery.includes('dinner') ||
+          lowerQuery.includes('eat')
+      ).slice(0, 5)
+    }
+
+    const response = await fetch(
+      'https://places.googleapis.com/v1/places:searchText',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_API_KEY,
+          'X-Goog-FieldMask':
+            'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.priceLevel,places.primaryType,places.photos',
+        },
+        body: JSON.stringify({
+          textQuery: query,
+          locationBias: {
+            circle: {
+              center: { latitude: lat, longitude: lng },
+              radius: radius,
+            },
+          },
+          includedType: 'restaurant',
+          maxResultCount: 10,
+        }),
+      }
+    )
+
+    const data = await response.json()
+
+    return (data.places || []).map((place: any) => ({
+      placeId: place.id,
+      name: place.displayName?.text || 'Unknown',
+      address: place.formattedAddress || '',
+      lat: place.location?.latitude,
+      lng: place.location?.longitude,
+      rating: place.rating,
+      priceLevel: place.priceLevel ? parsePriceLevel(place.priceLevel) : null,
+      cuisine: place.primaryType || null,
+      photoReference: place.photos?.[0]?.name || null,
+    }))
+  },
+})
+
+export const getDetailsInternal = internalAction({
+  args: { placeId: v.string() },
+  handler: async (_ctx, { placeId }) => {
     if (!GOOGLE_API_KEY || placeId.startsWith('mock-')) {
       const mockRestaurant = MOCK_RESTAURANTS.find(
         (r) => r.placeId === placeId
