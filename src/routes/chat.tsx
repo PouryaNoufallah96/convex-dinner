@@ -1,94 +1,96 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState, useCallback } from 'react'
-import { useMutation, useQuery } from 'convex/react'
-import { LogOut, RotateCcw } from 'lucide-react'
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, useCallback } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { LogOut, RotateCcw } from "lucide-react";
 
-import ChatPanel from '@/components/dinner/Chat'
-import { RestaurantMap } from '@/components/dinner/Map'
-import { ShortlistPanel } from '@/components/dinner/Shortlist'
-import { getVisitorId, getVisitorName, clearVisitor } from '@/lib/visitor'
-import { getCachedLocation, type UserLocation } from '@/lib/location'
-import { DEFAULT_LOCATION } from '@/data/mock-restaurants'
-import { useDinnerChat } from '@/lib/dinner-chat-hook'
-import { api } from '../../convex/_generated/api'
+import ChatPanel from "@/components/dinner/Chat";
+import { RestaurantMap } from "@/components/dinner/Map";
+import { ShortlistPanel } from "@/components/dinner/Shortlist";
+import { getVisitorId, getVisitorName, clearVisitor } from "@/lib/visitor";
+import { getCachedLocation, type UserLocation } from "@/lib/location";
+import { DEFAULT_LOCATION } from "@/data/mock-restaurants";
+import { useDinnerChat } from "@/lib/dinner-chat-hook";
+import { api } from "../../convex/_generated/api";
 
-export const Route = createFileRoute('/chat')({
+export const Route = createFileRoute("/chat")({
   component: ChatRoom,
-})
+});
 
 function ChatRoom() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // Visitor info
-  const [visitorId, setVisitorId] = useState('')
-  const [visitorName, setVisitorName] = useState('')
-  const [userLocation, setUserLocation] = useState<UserLocation>(DEFAULT_LOCATION)
+  const [visitorId, setVisitorId] = useState("");
+  const [visitorName, setVisitorName] = useState("");
+  const [userLocation, setUserLocation] =
+    useState<UserLocation>(DEFAULT_LOCATION);
 
   // Map state for client tools
-  const [mapCenter, setMapCenter] = useState(DEFAULT_LOCATION)
-  const [mapZoom, setMapZoom] = useState(13)
-  const [highlightedPlaceId, setHighlightedPlaceId] = useState<string | null>(null)
+  const [mapCenter, setMapCenter] = useState(DEFAULT_LOCATION);
+  const [mapZoom, setMapZoom] = useState(13);
+  const [highlightedPlaceId, setHighlightedPlaceId] = useState<string | null>(
+    null,
+  );
 
   // Get shortlist for map pins
-  const shortlist = useQuery(api.shortlist.list)
-  const sendMessage = useMutation(api.messages.send)
-  const clearMessages = useMutation(api.messages.clear)
-  const clearShortlist = useMutation(api.shortlist.clear)
+  const shortlist = useQuery(api.shortlist.list);
+  const clearMessages = useMutation(api.messages.clear);
+  const clearShortlist = useMutation(api.shortlist.clear);
 
   // AI chat hook with client tool handlers
-  const { messages: aiMessages, sendMessage: sendToAi, isLoading: isAiLoading } = useDinnerChat(
-    visitorName,
-    userLocation,
-    {
-      onShowOnMap: ({ lat, lng, placeId, zoom }) => {
-        setMapCenter({ lat, lng })
-        setMapZoom(zoom || 15)
-        setHighlightedPlaceId(placeId)
-      },
-      onShowRestaurantCard: ({ placeId }) => {
-        setHighlightedPlaceId(placeId)
-      },
-      onHighlightShortlistItem: ({ placeId }) => {
-        setHighlightedPlaceId(placeId)
-      },
-    }
-  )
+  const {
+    messages: aiMessages,
+    sendMessage: sendToAi,
+    isLoading: isAiLoading,
+  } = useDinnerChat(visitorName, userLocation, {
+    onShowOnMap: ({ lat, lng, placeId, zoom }) => {
+      setMapCenter({ lat, lng });
+      setMapZoom(zoom || 15);
+      setHighlightedPlaceId(placeId);
+    },
+    onShowRestaurantCard: ({ placeId }) => {
+      setHighlightedPlaceId(placeId);
+    },
+    onHighlightShortlistItem: ({ placeId }) => {
+      setHighlightedPlaceId(placeId);
+    },
+  });
 
   // Initialize visitor on mount
   useEffect(() => {
-    const name = getVisitorName()
+    const name = getVisitorName();
     if (!name) {
-      navigate({ to: '/' })
-      return
+      navigate({ to: "/" });
+      return;
     }
-    setVisitorId(getVisitorId())
-    setVisitorName(name)
+    setVisitorId(getVisitorId());
+    setVisitorName(name);
 
     // Get user location
-    getCachedLocation().then(setUserLocation)
-  }, [navigate])
+    getCachedLocation().then(setUserLocation);
+  }, [navigate]);
 
   // Handle sending message to AI
   const handleSendToAi = useCallback(
     (message: string) => {
       // Send to AI for processing - response will come via aiMessages
-      sendToAi(message)
+      sendToAi(message);
     },
-    [sendToAi]
-  )
+    [sendToAi],
+  );
 
   // Handle logout
   const handleLogout = () => {
-    clearVisitor()
-    navigate({ to: '/' })
-  }
+    clearVisitor();
+    navigate({ to: "/" });
+  };
 
   // Handle reset (clear all data)
   const handleReset = async () => {
-    if (confirm('Clear all messages and shortlist? This affects everyone!')) {
-      await Promise.all([clearMessages(), clearShortlist()])
+    if (confirm("Clear all messages and shortlist? This affects everyone!")) {
+      await Promise.all([clearMessages(), clearShortlist()]);
     }
-  }
+  };
 
   // Map restaurants from shortlist
   const mapRestaurants =
@@ -97,14 +99,14 @@ function ChatRoom() {
       name: r.name,
       lat: r.lat,
       lng: r.lng,
-    })) ?? []
+    })) ?? [];
 
   if (!visitorName) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="animate-pulse text-amber-500">Loading...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -114,8 +116,7 @@ function ChatRoom() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-white">
-              Dinner{' '}
-              <span className="text-amber-500">Plans</span>
+              Dinner <span className="text-amber-500">Plans</span>
             </h1>
             <span className="text-gray-500">|</span>
             <span className="text-gray-400">
@@ -175,11 +176,13 @@ function ChatRoom() {
                 visitorName={visitorName}
                 highlightedPlaceId={highlightedPlaceId}
                 onCardClick={(placeId) => {
-                  const restaurant = shortlist?.find((r) => r.placeId === placeId)
+                  const restaurant = shortlist?.find(
+                    (r) => r.placeId === placeId,
+                  );
                   if (restaurant) {
-                    setMapCenter({ lat: restaurant.lat, lng: restaurant.lng })
-                    setMapZoom(15)
-                    setHighlightedPlaceId(placeId)
+                    setMapCenter({ lat: restaurant.lat, lng: restaurant.lng });
+                    setMapZoom(15);
+                    setHighlightedPlaceId(placeId);
                   }
                 }}
               />
@@ -188,5 +191,5 @@ function ChatRoom() {
         </div>
       </main>
     </div>
-  )
+  );
 }

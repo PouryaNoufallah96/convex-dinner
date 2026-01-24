@@ -1,20 +1,20 @@
-import { Star, DollarSign, MapPin, Trash2 } from 'lucide-react'
-import VoteButton from './VoteButton'
+import { Star, MapPin, Trash2 } from "lucide-react";
+import VoteButton from "./VoteButton";
 
 interface RestaurantCardProps {
-  placeId: string
-  name: string
-  address: string
-  cuisine?: string | null
-  rating?: number | null
-  priceLevel?: number | null
-  voteCount: number
-  voters: string[]
-  hasVoted: boolean
-  isHighlighted?: boolean
-  onVote: () => void
-  onRemove: () => void
-  onClick?: () => void
+  placeId: string;
+  name: string;
+  address: string;
+  cuisine?: string | null;
+  rating?: number | null;
+  priceLevel?: number | null;
+  voteCount: number;
+  voters: string[];
+  hasVoted: boolean;
+  isHighlighted?: boolean;
+  onVote: () => void;
+  onRemove: () => void;
+  onClick?: () => void;
 }
 
 export default function RestaurantCard({
@@ -33,21 +33,23 @@ export default function RestaurantCard({
 }: RestaurantCardProps) {
   // Render price level as dollar signs
   const renderPriceLevel = (level: number | null | undefined) => {
-    if (level === null || level === undefined) return null
+    if (level === null || level === undefined) return null;
     return (
       <span className="text-green-500">
-        {'$'.repeat(Math.max(1, level))}
-        <span className="text-gray-600">{'$'.repeat(Math.max(0, 4 - level))}</span>
+        {"$".repeat(Math.max(1, level))}
+        <span className="text-gray-600">
+          {"$".repeat(Math.max(0, 4 - level))}
+        </span>
       </span>
-    )
-  }
+    );
+  };
 
   return (
     <div
       className={`bg-gray-800 rounded-lg p-3 border transition-all cursor-pointer hover:border-amber-500/50 ${
         isHighlighted
-          ? 'border-amber-500 ring-1 ring-amber-500/30'
-          : 'border-gray-700'
+          ? "border-amber-500 ring-1 ring-amber-500/30"
+          : "border-gray-700"
       }`}
       onClick={onClick}
     >
@@ -62,7 +64,7 @@ export default function RestaurantCard({
               </span>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
             {rating && (
               <div className="flex items-center gap-0.5">
@@ -82,7 +84,10 @@ export default function RestaurantCard({
         </div>
 
         {/* Right: Vote button + remove */}
-        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex items-center gap-2 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
           <VoteButton
             voteCount={voteCount}
             hasVoted={hasVoted}
@@ -91,8 +96,8 @@ export default function RestaurantCard({
           />
           <button
             onClick={(e) => {
-              e.stopPropagation()
-              onRemove()
+              e.stopPropagation();
+              onRemove();
             }}
             className="text-gray-500 hover:text-red-500 p-1 transition-colors"
             title="Remove from shortlist"
@@ -102,5 +107,5 @@ export default function RestaurantCard({
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,11 +1,11 @@
-import { Bot, User } from 'lucide-react'
-import { Streamdown } from 'streamdown'
+import { Bot, User } from "lucide-react";
+import { Streamdown } from "streamdown";
 
 interface MessageBubbleProps {
-  senderName: string
-  content: string
-  isAi: boolean
-  timestamp?: number
+  senderName: string;
+  content: string;
+  isAi: boolean;
+  timestamp?: number;
 }
 
 export default function MessageBubble({
@@ -14,15 +14,17 @@ export default function MessageBubble({
   isAi,
   timestamp,
 }: MessageBubbleProps) {
-  const initials = isAi ? 'AI' : senderName.slice(0, 2).toUpperCase()
+  const initials = isAi ? "AI" : senderName.slice(0, 2).toUpperCase();
 
   return (
-    <div className={`flex gap-3 ${isAi ? 'bg-amber-500/5' : ''} p-3 rounded-lg`}>
+    <div
+      className={`flex gap-3 ${isAi ? "bg-amber-500/5" : ""} p-3 rounded-lg`}
+    >
       <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
           isAi
-            ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white'
-            : 'bg-gray-700 text-gray-200'
+            ? "bg-linear-to-br from-amber-500 to-orange-600 text-white"
+            : "bg-gray-700 text-gray-200"
         }`}
       >
         {isAi ? (
@@ -35,16 +37,16 @@ export default function MessageBubble({
         <div className="flex items-baseline gap-2 mb-1">
           <span
             className={`font-semibold text-sm ${
-              isAi ? 'text-amber-500' : 'text-gray-200'
+              isAi ? "text-amber-500" : "text-gray-200"
             }`}
           >
-            {isAi ? 'AI Assistant' : senderName}
+            {isAi ? "AI Assistant" : senderName}
           </span>
           {timestamp && (
             <span className="text-xs text-gray-500">
               {new Date(timestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
+                hour: "2-digit",
+                minute: "2-digit",
               })}
             </span>
           )}
@@ -54,5 +56,5 @@ export default function MessageBubble({
         </div>
       </div>
     </div>
-  )
+  );
 }
