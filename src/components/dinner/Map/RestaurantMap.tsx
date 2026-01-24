@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { MapPin, ZoomIn, ZoomOut, Navigation } from 'lucide-react'
 import { DEFAULT_LOCATION } from '@/data/mock-restaurants'
 
@@ -7,6 +7,8 @@ import {
   APIProvider,
   Map,
   AdvancedMarker,
+  useApiLoadingStatus,
+  APILoadingStatus,
 } from '@vis.gl/react-google-maps'
 
 interface MapRestaurant {
@@ -29,6 +31,35 @@ const GOOGLE_MAPS_API_KEY =
   (import.meta as any).env?.VITE_GOOGLE_API_KEY || 
   (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || 
   ''
+
+// #region agent log
+// Debug: Log API key status at module load time
+console.log('[DEBUG:MODULE_LOAD] API Key check:', {
+  hasKey: !!GOOGLE_MAPS_API_KEY,
+  keyLength: GOOGLE_MAPS_API_KEY?.length || 0,
+  keyPrefix: GOOGLE_MAPS_API_KEY?.slice(0, 15) || 'empty',
+  envKeys: Object.keys((import.meta as any).env || {}).filter((k: string) => k.includes('GOOGLE')),
+});
+// #endregion
+
+// #region agent log
+// Debug component to monitor API loading status
+function MapErrorBoundary() {
+  const status = useApiLoadingStatus();
+  useEffect(() => {
+    console.log('[DEBUG:API_STATUS] Google Maps API status:', status);
+    if (status === APILoadingStatus.AUTH_FAILURE) {
+      console.error('[DEBUG:AUTH_FAILURE] Google Maps authentication failed! Check:', [
+        '1. Is Maps JavaScript API enabled in Google Cloud Console?',
+        '2. Is billing enabled for your project?',
+        '3. Is your API key restricted to certain domains/IPs?',
+        '4. Is the mapId valid (created in Cloud Console)?',
+      ].join('\n'));
+    }
+  }, [status]);
+  return null;
+}
+// #endregion
 
 // Mock map component for when no API key is available
 function MockMap({
@@ -171,77 +202,112 @@ function GoogleMap({
   zoom,
   onPinClick,
 }: RestaurantMapProps) {
-  const mapCenter = center || DEFAULT_LOCATION
+  const initialCenter = center || DEFAULT_LOCATION
+  const initialZoom = zoom || 13
+  
+  // Use a key to force re-mount when we need to programmatically recenter
+  // This allows the map to be uncontrolled (free panning) but still respond to prop changes
+  const [mapKey, setMapKey] = useState(0)
+  const lastCenterRef = useRef(initialCenter)
+  
+  // When center prop changes significantly, update the map
+  useEffect(() => {
+    if (center && (
+      Math.abs(center.lat - lastCenterRef.current.lat) > 0.001 ||
+      Math.abs(center.lng - lastCenterRef.current.lng) > 0.001
+    )) {
+      lastCenterRef.current = center
+      setMapKey(k => k + 1) // Force re-mount to recenter
+    }
+  }, [center])
 
   return (
-    <div className="relative h-full rounded-lg border border-gray-700 overflow-hidden">
-      {/* Map header */}
-      <div className="absolute top-0 left-0 right-0 p-3 bg-linear-to-b from-gray-900/90 to-transparent z-10 pointer-events-none">
+    <div className="flex flex-col h-full">
+      {/* Map header - above the map */}
+      <div className="p-3 bg-gray-900">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <MapPin className="w-5 h-5 text-amber-500" />
           Restaurant Map
         </h2>
       </div>
 
-      <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-        <Map
-          defaultCenter={mapCenter}
-          center={mapCenter}
-          defaultZoom={zoom || 13}
-          zoom={zoom || 13}
-          gestureHandling="greedy"
-          disableDefaultUI={false}
-          mapId="dinner-plans-map"
-          style={{ width: '100%', height: '100%' }}
-          colorScheme="DARK"
-        >
-          {/* User location marker */}
-          <AdvancedMarker position={DEFAULT_LOCATION}>
-            <div className="relative">
-              <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse" />
-            </div>
-          </AdvancedMarker>
+      {/* Map container */}
+      <div className="relative flex-1 rounded-b-lg border border-gray-700 border-t-0 overflow-hidden">
+        <APIProvider apiKey={GOOGLE_MAPS_API_KEY} onLoad={() => {
+          // #region agent log
+          console.log('[DEBUG:API_LOADED] Google Maps API loaded successfully');
+          // #endregion
+        }}>
+          {/* #region agent log */}
+          <MapErrorBoundary />
+          {/* #endregion */}
+          <Map
+            key={mapKey}
+            defaultCenter={lastCenterRef.current}
+            defaultZoom={initialZoom}
+            gestureHandling="greedy"
+            disableDefaultUI={true}
+            zoomControl={true}
+            mapId="dinner-plans-map"
+            style={{ width: '100%', height: '100%' }}
+            colorScheme="DARK"
+          >
+            {/* User location marker */}
+            <AdvancedMarker position={DEFAULT_LOCATION}>
+              <div className="relative">
+                <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse" />
+              </div>
+            </AdvancedMarker>
 
-          {/* Restaurant markers */}
-          {restaurants.map((restaurant) => {
-            const isHighlighted = highlightedPlaceId === restaurant.placeId
-            return (
-              <AdvancedMarker
-                key={restaurant.placeId}
-                position={{ lat: restaurant.lat, lng: restaurant.lng }}
-                onClick={() => onPinClick?.(restaurant.placeId)}
-              >
-                <div 
-                  className={`flex items-center justify-center rounded-full shadow-lg transition-transform cursor-pointer ${
-                    isHighlighted 
-                      ? 'w-10 h-10 bg-amber-500 border-2 border-amber-600 scale-110' 
-                      : 'w-8 h-8 bg-red-500 border-2 border-red-600 hover:scale-110'
-                  }`}
+            {/* Restaurant markers */}
+            {restaurants.map((restaurant) => {
+              const isHighlighted = highlightedPlaceId === restaurant.placeId
+              return (
+                <AdvancedMarker
+                  key={restaurant.placeId}
+                  position={{ lat: restaurant.lat, lng: restaurant.lng }}
+                  onClick={() => onPinClick?.(restaurant.placeId)}
                 >
-                  <MapPin className="w-4 h-4 text-white" />
-                </div>
-              </AdvancedMarker>
-            )
-          })}
-        </Map>
-      </APIProvider>
+                  <div 
+                    className={`flex items-center justify-center rounded-full shadow-lg transition-transform cursor-pointer ${
+                      isHighlighted 
+                        ? 'w-10 h-10 bg-amber-500 border-2 border-amber-600 scale-110' 
+                        : 'w-8 h-8 bg-red-500 border-2 border-red-600 hover:scale-110'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4 text-white" />
+                  </div>
+                </AdvancedMarker>
+              )
+            })}
+          </Map>
+        </APIProvider>
 
-      {/* No restaurants message */}
-      {restaurants.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center text-white bg-gray-900/80 p-4 rounded-lg">
-            <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No restaurants to display</p>
-            <p className="text-sm text-gray-400">Ask AI to search for restaurants!</p>
+        {/* No restaurants message */}
+        {restaurants.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center text-white bg-gray-900/80 p-4 rounded-lg">
+              <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No restaurants to display</p>
+              <p className="text-sm text-gray-400">Ask AI to search for restaurants!</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
 
 // Main component that chooses between real and mock map
 export default function RestaurantMap(props: RestaurantMapProps) {
+  // #region agent log
+  console.log('[DEBUG:RENDER] RestaurantMap decision:', {
+    hasKey: !!GOOGLE_MAPS_API_KEY,
+    keyLength: GOOGLE_MAPS_API_KEY?.length || 0,
+    usingGoogleMap: !!GOOGLE_MAPS_API_KEY,
+  });
+  // #endregion
+  
   // Use real Google Maps if API key is available
   if (GOOGLE_MAPS_API_KEY) {
     return <GoogleMap {...props} />

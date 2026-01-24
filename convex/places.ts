@@ -1,19 +1,40 @@
 import { action, internalAction } from './_generated/server'
 import { v } from 'convex/values'
 
-// Support both GOOGLE_API_KEY and GOOGLE_PLACES_API_KEY for flexibility
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.GOOGLE_PLACES_API_KEY
-
-function parsePriceLevel(level: string): number {
-  const map: Record<string, number> = {
-    PRICE_LEVEL_FREE: 0,
-    PRICE_LEVEL_INEXPENSIVE: 1,
-    PRICE_LEVEL_MODERATE: 2,
-    PRICE_LEVEL_EXPENSIVE: 3,
-    PRICE_LEVEL_VERY_EXPENSIVE: 4,
-  }
-  return map[level] ?? 2
+// Helper to get API key at runtime (not module load time)
+function getGoogleApiKey(): string | undefined {
+  const key = process.env.GOOGLE_API_KEY || process.env.GOOGLE_PLACES_API_KEY
+  console.log('[Places API] GOOGLE_API_KEY present:', !!key, 'length:', key?.length || 0)
+  return key
 }
+
+// Test action to verify Places API is working
+export const testPlacesApi = action({
+  args: {},
+  handler: async () => {
+    const apiKey = getGoogleApiKey()
+    
+    if (!apiKey) {
+      return { success: false, error: 'No API key found', envKeys: Object.keys(process.env).filter(k => k.includes('GOOGLE')) }
+    }
+
+    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json')
+    url.searchParams.set('query', 'Indian restaurants in Portland OR')
+    url.searchParams.set('type', 'restaurant')
+    url.searchParams.set('key', apiKey)
+
+    const response = await fetch(url.toString())
+    const data = await response.json()
+
+    return {
+      success: data.status === 'OK',
+      status: data.status,
+      error: data.error_message,
+      resultCount: data.results?.length || 0,
+      firstResult: data.results?.[0]?.name || null,
+    }
+  },
+})
 
 // Mock data for development without Google API
 const MOCK_RESTAURANTS = [
@@ -115,8 +136,10 @@ export const searchNearby = action({
     radius: v.optional(v.number()), // meters, default 5000
   },
   handler: async (_ctx, { query, lat, lng, radius = 5000 }) => {
+    const apiKey = getGoogleApiKey()
+    
     // If no API key, return mock data filtered by query
-    if (!GOOGLE_API_KEY) {
+    if (!apiKey) {
       console.log('Using mock restaurant data (no GOOGLE_PLACES_API_KEY)')
       const lowerQuery = query.toLowerCase()
       return MOCK_RESTAURANTS.filter(
@@ -130,42 +153,32 @@ export const searchNearby = action({
       ).slice(0, 5)
     }
 
-    const response = await fetch(
-      'https://places.googleapis.com/v1/places:searchText',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_API_KEY,
-          'X-Goog-FieldMask':
-            'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.priceLevel,places.primaryType,places.photos',
-        },
-        body: JSON.stringify({
-          textQuery: query,
-          locationBias: {
-            circle: {
-              center: { latitude: lat, longitude: lng },
-              radius: radius,
-            },
-          },
-          includedType: 'restaurant',
-          maxResultCount: 10,
-        }),
-      }
-    )
+    // Use old Places API (textsearch endpoint)
+    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json')
+    url.searchParams.set('query', query)
+    url.searchParams.set('location', `${lat},${lng}`)
+    url.searchParams.set('radius', String(radius))
+    url.searchParams.set('type', 'restaurant')
+    url.searchParams.set('key', apiKey)
 
+    const response = await fetch(url.toString())
     const data = await response.json()
 
-    return (data.places || []).map((place: any) => ({
-      placeId: place.id,
-      name: place.displayName?.text || 'Unknown',
-      address: place.formattedAddress || '',
-      lat: place.location?.latitude,
-      lng: place.location?.longitude,
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.error('Places API error:', data.status, data.error_message)
+      return []
+    }
+
+    return (data.results || []).slice(0, 10).map((place: any) => ({
+      placeId: place.place_id,
+      name: place.name || 'Unknown',
+      address: place.formatted_address || '',
+      lat: place.geometry?.location?.lat,
+      lng: place.geometry?.location?.lng,
       rating: place.rating,
-      priceLevel: place.priceLevel ? parsePriceLevel(place.priceLevel) : null,
-      cuisine: place.primaryType || null,
-      photoReference: place.photos?.[0]?.name || null,
+      priceLevel: place.price_level ?? null,
+      cuisine: place.types?.[0] || null,
+      photoReference: place.photos?.[0]?.photo_reference || null,
     }))
   },
 })
@@ -173,8 +186,10 @@ export const searchNearby = action({
 export const getDetails = action({
   args: { placeId: v.string() },
   handler: async (_ctx, { placeId }) => {
+    const apiKey = getGoogleApiKey()
+    
     // If mock place or no API key, return mock details
-    if (!GOOGLE_API_KEY || placeId.startsWith('mock-')) {
+    if (!apiKey || placeId.startsWith('mock-')) {
       const mockRestaurant = MOCK_RESTAURANTS.find(
         (r) => r.placeId === placeId
       )
@@ -208,35 +223,38 @@ export const getDetails = action({
       }
     }
 
-    const response = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}`,
-      {
-        headers: {
-          'X-Goog-Api-Key': GOOGLE_API_KEY!,
-          'X-Goog-FieldMask':
-            'id,displayName,formattedAddress,location,rating,priceLevel,currentOpeningHours,reviews,photos,websiteUri,nationalPhoneNumber',
-        },
-      }
-    )
+    // Use old Places API (details endpoint)
+    const url = new URL('https://maps.googleapis.com/maps/api/place/details/json')
+    url.searchParams.set('place_id', placeId)
+    url.searchParams.set('fields', 'place_id,name,formatted_address,geometry,rating,price_level,opening_hours,reviews,formatted_phone_number,website,photos')
+    url.searchParams.set('key', apiKey!)
 
-    const place = await response.json()
+    const response = await fetch(url.toString())
+    const data = await response.json()
+
+    if (data.status !== 'OK') {
+      console.error('Places API error:', data.status, data.error_message)
+      return null
+    }
+
+    const place = data.result
 
     return {
-      placeId: place.id,
-      name: place.displayName?.text,
-      address: place.formattedAddress,
-      lat: place.location?.latitude,
-      lng: place.location?.longitude,
+      placeId: place.place_id,
+      name: place.name,
+      address: place.formatted_address,
+      lat: place.geometry?.location?.lat,
+      lng: place.geometry?.location?.lng,
       rating: place.rating,
-      priceLevel: place.priceLevel ? parsePriceLevel(place.priceLevel) : null,
-      hours: place.currentOpeningHours?.weekdayDescriptions || [],
+      priceLevel: place.price_level ?? null,
+      hours: place.opening_hours?.weekday_text || [],
       reviews: (place.reviews || []).slice(0, 3).map((r: any) => ({
         rating: r.rating,
-        text: r.text?.text,
-        author: r.authorAttribution?.displayName,
+        text: r.text,
+        author: r.author_name,
       })),
-      phone: place.nationalPhoneNumber,
-      website: place.websiteUri,
+      phone: place.formatted_phone_number,
+      website: place.website,
     }
   },
 })
@@ -250,7 +268,9 @@ export const searchNearbyInternal = internalAction({
     radius: v.optional(v.number()),
   },
   handler: async (_ctx, { query, lat, lng, radius = 5000 }) => {
-    if (!GOOGLE_API_KEY) {
+    const apiKey = getGoogleApiKey()
+    
+    if (!apiKey) {
       console.log('Using mock restaurant data (no GOOGLE_PLACES_API_KEY)')
       const lowerQuery = query.toLowerCase()
       return MOCK_RESTAURANTS.filter(
@@ -264,42 +284,32 @@ export const searchNearbyInternal = internalAction({
       ).slice(0, 5)
     }
 
-    const response = await fetch(
-      'https://places.googleapis.com/v1/places:searchText',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_API_KEY,
-          'X-Goog-FieldMask':
-            'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.priceLevel,places.primaryType,places.photos',
-        },
-        body: JSON.stringify({
-          textQuery: query,
-          locationBias: {
-            circle: {
-              center: { latitude: lat, longitude: lng },
-              radius: radius,
-            },
-          },
-          includedType: 'restaurant',
-          maxResultCount: 10,
-        }),
-      }
-    )
+    // Use old Places API (textsearch endpoint)
+    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json')
+    url.searchParams.set('query', query)
+    url.searchParams.set('location', `${lat},${lng}`)
+    url.searchParams.set('radius', String(radius))
+    url.searchParams.set('type', 'restaurant')
+    url.searchParams.set('key', apiKey)
 
+    const response = await fetch(url.toString())
     const data = await response.json()
 
-    return (data.places || []).map((place: any) => ({
-      placeId: place.id,
-      name: place.displayName?.text || 'Unknown',
-      address: place.formattedAddress || '',
-      lat: place.location?.latitude,
-      lng: place.location?.longitude,
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.error('Places API error:', data.status, data.error_message)
+      return []
+    }
+
+    return (data.results || []).slice(0, 10).map((place: any) => ({
+      placeId: place.place_id,
+      name: place.name || 'Unknown',
+      address: place.formatted_address || '',
+      lat: place.geometry?.location?.lat,
+      lng: place.geometry?.location?.lng,
       rating: place.rating,
-      priceLevel: place.priceLevel ? parsePriceLevel(place.priceLevel) : null,
-      cuisine: place.primaryType || null,
-      photoReference: place.photos?.[0]?.name || null,
+      priceLevel: place.price_level ?? null,
+      cuisine: place.types?.[0] || null,
+      photoReference: place.photos?.[0]?.photo_reference || null,
     }))
   },
 })
@@ -307,7 +317,9 @@ export const searchNearbyInternal = internalAction({
 export const getDetailsInternal = internalAction({
   args: { placeId: v.string() },
   handler: async (_ctx, { placeId }) => {
-    if (!GOOGLE_API_KEY || placeId.startsWith('mock-')) {
+    const apiKey = getGoogleApiKey()
+    
+    if (!apiKey || placeId.startsWith('mock-')) {
       const mockRestaurant = MOCK_RESTAURANTS.find(
         (r) => r.placeId === placeId
       )
@@ -341,35 +353,38 @@ export const getDetailsInternal = internalAction({
       }
     }
 
-    const response = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}`,
-      {
-        headers: {
-          'X-Goog-Api-Key': GOOGLE_API_KEY!,
-          'X-Goog-FieldMask':
-            'id,displayName,formattedAddress,location,rating,priceLevel,currentOpeningHours,reviews,photos,websiteUri,nationalPhoneNumber',
-        },
-      }
-    )
+    // Use old Places API (details endpoint)
+    const url = new URL('https://maps.googleapis.com/maps/api/place/details/json')
+    url.searchParams.set('place_id', placeId)
+    url.searchParams.set('fields', 'place_id,name,formatted_address,geometry,rating,price_level,opening_hours,reviews,formatted_phone_number,website,photos')
+    url.searchParams.set('key', apiKey!)
 
-    const place = await response.json()
+    const response = await fetch(url.toString())
+    const data = await response.json()
+
+    if (data.status !== 'OK') {
+      console.error('Places API error:', data.status, data.error_message)
+      return null
+    }
+
+    const place = data.result
 
     return {
-      placeId: place.id,
-      name: place.displayName?.text,
-      address: place.formattedAddress,
-      lat: place.location?.latitude,
-      lng: place.location?.longitude,
+      placeId: place.place_id,
+      name: place.name,
+      address: place.formatted_address,
+      lat: place.geometry?.location?.lat,
+      lng: place.geometry?.location?.lng,
       rating: place.rating,
-      priceLevel: place.priceLevel ? parsePriceLevel(place.priceLevel) : null,
-      hours: place.currentOpeningHours?.weekdayDescriptions || [],
+      priceLevel: place.price_level ?? null,
+      hours: place.opening_hours?.weekday_text || [],
       reviews: (place.reviews || []).slice(0, 3).map((r: any) => ({
         rating: r.rating,
-        text: r.text?.text,
-        author: r.authorAttribution?.displayName,
+        text: r.text,
+        author: r.author_name,
       })),
-      phone: place.nationalPhoneNumber,
-      website: place.websiteUri,
+      phone: place.formatted_phone_number,
+      website: place.website,
     }
   },
 })

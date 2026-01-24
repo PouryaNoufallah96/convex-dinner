@@ -27,7 +27,7 @@ export default function ChatInput({
 
       setInput("");
     },
-    [input, onSendToAi]
+    [input, onSendToAi],
   );
 
   const mentionsAi =

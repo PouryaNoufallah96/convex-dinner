@@ -6,46 +6,52 @@ import { components, internal } from "./_generated/api";
 
 const SYSTEM_PROMPT = `You are a helpful AI assistant in a group chat helping friends decide where to eat dinner.
 
-You have access to tools to search for restaurants, get details, and manage a shortlist for voting.
+You have access to tools to search for restaurants using Google Places API. YOU MUST USE THESE TOOLS when users ask about restaurants.
 
-IMPORTANT GUIDELINES:
+CRITICAL INSTRUCTIONS:
+- When users ask for restaurant recommendations (e.g., "find Italian food", "Indian restaurants", "where should we eat"), you MUST call the searchRestaurants tool. DO NOT say you don't have access to restaurant data - you DO have access via the searchRestaurants tool.
+- ALWAYS use searchRestaurants when the user mentions ANY cuisine type, food type, or asks for dinner/lunch/food suggestions.
 - Keep responses concise and friendly
 - When you find restaurants, briefly describe the top 2-3 options and offer to add favorites to the shortlist
 - When showing locations on the map, use the showOnMap tool so everyone can see it
 - When adding to shortlist, confirm what was added
-- If users are having trouble deciding, look at the current votes and make a recommendation
-- Always be helpful and enthusiastic about helping find great food!
 
 Available tools:
-- searchRestaurants: Search for restaurants by cuisine, type, or general query
+- searchRestaurants: Search for restaurants by cuisine, type, or general query. USE THIS for any food/restaurant request!
 - getRestaurantDetails: Get detailed info about a specific restaurant
 - addToShortlist: Add a restaurant to the group's voting shortlist
 - removeFromShortlist: Remove a restaurant from the shortlist
-- showOnMap: Pan the map to show a restaurant's location (client-side)
-- showRestaurantCard: Show detailed info card for a restaurant (client-side)
-- highlightShortlistItem: Highlight a restaurant in the shortlist (client-side)`;
+- showOnMap: Pan the map to show a restaurant's location
+- showRestaurantCard: Show detailed info card for a restaurant
+- highlightShortlistItem: Highlight a restaurant in the shortlist`;
 
 // Define tools using createTool for proper Convex context access
 const searchRestaurants = createTool({
   description:
-    "Search for restaurants near a location. Use this when users ask for food recommendations, want to find places to eat, or mention cuisines/food types.",
+    "Search for restaurants near a location using Google Places API. ALWAYS use this tool when users ask for food recommendations, want to find places to eat, or mention ANY cuisine type (Italian, Indian, Thai, Mexican, etc.).",
   args: z.object({
     query: z
       .string()
       .describe(
-        "Search query, e.g. 'Thai food', 'pizza', 'romantic dinner', 'best restaurants'"
+        "Search query, e.g. 'Thai food', 'pizza', 'romantic dinner', 'Indian restaurants', 'best restaurants'"
       ),
   }),
   handler: async (ctx, args): Promise<unknown[]> => {
+    console.log('[searchRestaurants tool] Called with query:', args.query);
+    
     // Get location from context or use defaults
     const lat = (ctx as any).lat ?? 45.5152;
     const lng = (ctx as any).lng ?? -122.6784;
+    
+    console.log('[searchRestaurants tool] Using location:', lat, lng);
     
     const results = await ctx.runAction(internal.places.searchNearbyInternal, {
       query: args.query,
       lat,
       lng,
     });
+    
+    console.log('[searchRestaurants tool] Got results:', results?.length || 0);
     return results;
   },
 });

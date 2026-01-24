@@ -89,8 +89,7 @@ function LandingPage() {
       <footer className="py-6 text-center text-gray-500 text-sm">
         <p>
           Built with{' '}
-          <span className="text-amber-500">TanStack Start</span>,{' '}
-          <span className="text-amber-500">TanStack AI</span>, and{' '}
+          <span className="text-amber-500">TanStack Start</span> and{' '}
           <span className="text-amber-500">Convex</span>
         </p>
       </footer>

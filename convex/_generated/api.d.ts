@@ -10,7 +10,6 @@
 
 import type * as chat from "../chat.js";
 import type * as dinnerAgent from "../dinnerAgent.js";
-import type * as messages from "../messages.js";
 import type * as places from "../places.js";
 import type * as shortlist from "../shortlist.js";
 import type * as votes from "../votes.js";
@@ -24,7 +23,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   dinnerAgent: typeof dinnerAgent;
-  messages: typeof messages;
   places: typeof places;
   shortlist: typeof shortlist;
   votes: typeof votes;

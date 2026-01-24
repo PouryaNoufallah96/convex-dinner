@@ -8,13 +8,6 @@ export default defineSchema({
     threadId: v.string(),
   }),
 
-  // Legacy chat messages (can be removed once migration is complete)
-  messages: defineTable({
-    senderName: v.string(),
-    content: v.string(),
-    isAi: v.boolean(),
-  }),
-
   // Shortlisted restaurants
   shortlist: defineTable({
     placeId: v.string(),
