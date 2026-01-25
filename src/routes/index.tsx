@@ -1,98 +1,232 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
-import { Utensils, Users, MessageSquare, Vote } from 'lucide-react'
-import NameEntryForm from '@/components/dinner/NameEntryForm'
-import { getVisitorName } from '@/lib/visitor'
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState, useCallback } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { LogOut, RotateCcw } from "lucide-react";
 
-export const Route = createFileRoute('/')({
-  component: LandingPage,
-})
+import ChatPanel from "@/components/dinner/Chat";
+import { RestaurantMap } from "@/components/dinner/Map";
+import { ShortlistPanel } from "@/components/dinner/Shortlist";
+import LoginDialog from "@/components/dinner/LoginDialog";
+import { getVisitorId, getVisitorName, clearVisitor } from "@/lib/visitor";
+import { getCachedLocation, type UserLocation } from "@/lib/location";
+import { DEFAULT_LOCATION } from "@/data/mock-restaurants";
+import { useDinnerChat } from "@/lib/dinner-chat-hook";
+import { api } from "../../convex/_generated/api";
 
-function LandingPage() {
-  const navigate = useNavigate()
+export const Route = createFileRoute("/")({
+  component: DinnerPlans,
+});
 
-  // Check if user already has a name, redirect to chat
-  useEffect(() => {
-    const name = getVisitorName()
-    if (name) {
-      navigate({ to: '/chat' })
+function DinnerPlans() {
+  // Visitor info
+  const [visitorId, setVisitorId] = useState("");
+  const [visitorName, setVisitorName] = useState<string | null>(null);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [userLocation, setUserLocation] =
+    useState<UserLocation>(DEFAULT_LOCATION);
+
+  // Map state for client tools
+  const [mapCenter, setMapCenter] = useState(DEFAULT_LOCATION);
+  const [mapZoom, setMapZoom] = useState(13);
+  const [highlightedPlaceId, setHighlightedPlaceId] = useState<string | null>(
+    null
+  );
+
+  // Get shortlist for map pins
+  const shortlist = useQuery(api.shortlist.list);
+  const clearChat = useMutation(api.chat.clearChat);
+  const clearShortlist = useMutation(api.shortlist.clear);
+
+  // Multi-user chat hook with client tool handlers
+  // Messages come from Convex subscription - all users see the same messages
+  const { messages, sendMessage, isLoading, isStreaming } = useDinnerChat(
+    visitorName || "",
+    userLocation,
+    {
+      onShowOnMap: ({ lat, lng, placeId, name, zoom }) => {
+        setMapCenter({ lat, lng, name: name || "Restaurant" });
+        setMapZoom(zoom || 15);
+        setHighlightedPlaceId(placeId);
+      },
+      onShowRestaurantCard: ({ placeId }) => {
+        setHighlightedPlaceId(placeId);
+      },
+      onHighlightShortlistItem: ({ placeId }) => {
+        setHighlightedPlaceId(placeId);
+      },
     }
-  }, [navigate])
+  );
 
-  const features = [
-    {
-      icon: <MessageSquare className="w-6 h-6" />,
-      title: 'Group Chat',
-      description: 'Chat with friends in real-time',
+  // Initialize visitor on mount
+  useEffect(() => {
+    const name = getVisitorName();
+    if (name) {
+      setVisitorId(getVisitorId());
+      setVisitorName(name);
+    } else {
+      setShowLoginDialog(true);
+    }
+    setIsInitialized(true);
+
+    // Get user location
+    getCachedLocation().then(setUserLocation);
+  }, []);
+
+  // Handle successful login
+  const handleLoginSuccess = useCallback((name: string) => {
+    setVisitorId(getVisitorId());
+    setVisitorName(name);
+    setShowLoginDialog(false);
+  }, []);
+
+  // Handle sending message
+  const handleSendMessage = useCallback(
+    (message: string) => {
+      sendMessage(message);
     },
-    {
-      icon: <Utensils className="w-6 h-6" />,
-      title: 'AI Assistant',
-      description: 'Get restaurant recommendations with @ai',
-    },
-    {
-      icon: <Vote className="w-6 h-6" />,
-      title: 'Live Voting',
-      description: 'Vote on shortlisted restaurants together',
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: 'Multiplayer',
-      description: 'Everything syncs instantly for everyone',
-    },
-  ]
+    [sendMessage]
+  );
+
+  // Handle logout
+  const handleLogout = () => {
+    clearVisitor();
+    setVisitorName(null);
+    setVisitorId("");
+    setShowLoginDialog(true);
+  };
+
+  // Handle reset (clear all data)
+  const handleReset = async () => {
+    if (confirm("Clear all messages and shortlist? This affects everyone!")) {
+      await Promise.all([clearChat(), clearShortlist()]);
+    }
+  };
+
+  // Map restaurants from shortlist
+  const mapRestaurants =
+    shortlist?.map((r) => ({
+      placeId: r.placeId,
+      name: r.name,
+      lat: r.lat,
+      lng: r.lng,
+    })) ?? [];
+
+  // Show loading state until initialized
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-pulse text-amber-500">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login dialog if not logged in
+  if (!visitorName) {
+    return (
+      <div className="min-h-screen bg-linear-to-b from-gray-900 via-gray-900 to-gray-950">
+        <LoginDialog
+          open={showLoginDialog}
+          onSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 flex flex-col">
-      {/* Hero Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center">
-              <Utensils className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gray-950 flex flex-col">
+      {/* Login Dialog for re-login */}
+      <LoginDialog
+        open={showLoginDialog}
+        onSuccess={handleLoginSuccess}
+        onClose={() => setShowLoginDialog(false)}
+        showCloseButton={!!visitorName}
+      />
+
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-white">
+              Dinner <span className="text-amber-500">Plans</span>
+            </h1>
+            <span className="text-gray-500">|</span>
+            <span className="text-gray-400">
+              Welcome, <span className="text-amber-400">{visitorName}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleReset}
+              className="text-gray-400 hover:text-amber-500 p-2 rounded-lg hover:bg-gray-800 transition-colors"
+              title="Reset all data"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+              title="Leave chat"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm hidden sm:inline">Leave</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 p-4 max-w-7xl mx-auto w-full overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-88px)]">
+          {/* Left: Chat Panel */}
+          <div className="h-full min-h-0">
+            <ChatPanel
+              visitorName={visitorName}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              isStreaming={isStreaming}
+              messages={messages}
+            />
+          </div>
+
+          {/* Right: Map + Shortlist stacked */}
+          <div className="h-full min-h-0 flex flex-col gap-4">
+            {/* Map - takes ~50% */}
+            <div className="flex-1 min-h-0">
+              <RestaurantMap
+                restaurants={mapRestaurants}
+                highlightedPlaceId={highlightedPlaceId}
+                center={mapCenter}
+                zoom={mapZoom}
+                onPinClick={(placeId) => setHighlightedPlaceId(placeId)}
+              />
+            </div>
+
+            {/* Shortlist - takes ~50% */}
+            <div className="flex-1 min-h-0 overflow-auto">
+              <ShortlistPanel
+                visitorId={visitorId}
+                visitorName={visitorName}
+                highlightedPlaceId={highlightedPlaceId}
+                onCardClick={(placeId) => {
+                  const restaurant = shortlist?.find(
+                    (r) => r.placeId === placeId
+                  );
+                  if (restaurant) {
+                    setMapCenter({
+                      lat: restaurant.lat,
+                      lng: restaurant.lng,
+                      name: restaurant.name,
+                    });
+                    setMapZoom(15);
+                    setHighlightedPlaceId(placeId);
+                  }
+                }}
+              />
             </div>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            Dinner{' '}
-            <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-transparent bg-clip-text">
-              Plans
-            </span>
-          </h1>
-          <p className="text-xl text-gray-400 max-w-lg mx-auto">
-            Can't decide where to eat? Chat with friends, get AI
-            recommendations, and vote on your favorites!
-          </p>
         </div>
-
-        <NameEntryForm />
-
-        {/* Features */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="text-center p-4 rounded-xl bg-gray-800/30 border border-gray-800"
-            >
-              <div className="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center mx-auto mb-3 text-amber-500">
-                {feature.icon}
-              </div>
-              <h3 className="text-white font-medium text-sm mb-1">
-                {feature.title}
-              </h3>
-              <p className="text-gray-500 text-xs">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="py-6 text-center text-gray-500 text-sm">
-        <p>
-          Built with{' '}
-          <span className="text-amber-500">TanStack Start</span> and{' '}
-          <span className="text-amber-500">Convex</span>
-        </p>
-      </footer>
+      </main>
     </div>
-  )
+  );
 }

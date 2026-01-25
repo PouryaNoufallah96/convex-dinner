@@ -32,34 +32,17 @@ const GOOGLE_MAPS_API_KEY =
   (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || 
   ''
 
-// #region agent log
-// Debug: Log API key status at module load time
-console.log('[DEBUG:MODULE_LOAD] API Key check:', {
-  hasKey: !!GOOGLE_MAPS_API_KEY,
-  keyLength: GOOGLE_MAPS_API_KEY?.length || 0,
-  keyPrefix: GOOGLE_MAPS_API_KEY?.slice(0, 15) || 'empty',
-  envKeys: Object.keys((import.meta as any).env || {}).filter((k: string) => k.includes('GOOGLE')),
-});
-// #endregion
 
-// #region agent log
-// Debug component to monitor API loading status
+// Component to handle API authentication errors
 function MapErrorBoundary() {
   const status = useApiLoadingStatus();
   useEffect(() => {
-    console.log('[DEBUG:API_STATUS] Google Maps API status:', status);
     if (status === APILoadingStatus.AUTH_FAILURE) {
-      console.error('[DEBUG:AUTH_FAILURE] Google Maps authentication failed! Check:', [
-        '1. Is Maps JavaScript API enabled in Google Cloud Console?',
-        '2. Is billing enabled for your project?',
-        '3. Is your API key restricted to certain domains/IPs?',
-        '4. Is the mapId valid (created in Cloud Console)?',
-      ].join('\n'));
+      console.error('[Google Maps] Authentication failed. Check API key configuration.');
     }
   }, [status]);
   return null;
 }
-// #endregion
 
 // Mock map component for when no API key is available
 function MockMap({
@@ -233,14 +216,8 @@ function GoogleMap({
 
       {/* Map container */}
       <div className="relative flex-1 rounded-b-lg border border-gray-700 border-t-0 overflow-hidden">
-        <APIProvider apiKey={GOOGLE_MAPS_API_KEY} onLoad={() => {
-          // #region agent log
-          console.log('[DEBUG:API_LOADED] Google Maps API loaded successfully');
-          // #endregion
-        }}>
-          {/* #region agent log */}
+        <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <MapErrorBoundary />
-          {/* #endregion */}
           <Map
             key={mapKey}
             defaultCenter={lastCenterRef.current}
@@ -300,14 +277,6 @@ function GoogleMap({
 
 // Main component that chooses between real and mock map
 export default function RestaurantMap(props: RestaurantMapProps) {
-  // #region agent log
-  console.log('[DEBUG:RENDER] RestaurantMap decision:', {
-    hasKey: !!GOOGLE_MAPS_API_KEY,
-    keyLength: GOOGLE_MAPS_API_KEY?.length || 0,
-    usingGoogleMap: !!GOOGLE_MAPS_API_KEY,
-  });
-  // #endregion
-  
   // Use real Google Maps if API key is available
   if (GOOGLE_MAPS_API_KEY) {
     return <GoogleMap {...props} />

@@ -107,7 +107,6 @@ export function useDinnerChat(
   const sendMessage = useCallback(
     async (content: string) => {
       if (!threadId) {
-        console.error("No thread ID available");
         return;
       }
 

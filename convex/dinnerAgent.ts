@@ -37,13 +37,9 @@ const searchRestaurants = createTool({
       ),
   }),
   handler: async (ctx, args): Promise<unknown[]> => {
-    console.log('[searchRestaurants tool] Called with query:', args.query);
-    
     // Get location from context or use defaults
     const lat = (ctx as any).lat ?? 45.5152;
     const lng = (ctx as any).lng ?? -122.6784;
-    
-    console.log('[searchRestaurants tool] Using location:', lat, lng);
     
     const results = await ctx.runAction(internal.places.searchNearbyInternal, {
       query: args.query,
@@ -51,7 +47,6 @@ const searchRestaurants = createTool({
       lng,
     });
     
-    console.log('[searchRestaurants tool] Got results:', results?.length || 0);
     return results;
   },
 });

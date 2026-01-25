@@ -3,9 +3,7 @@ import { v } from 'convex/values'
 
 // Helper to get API key at runtime (not module load time)
 function getGoogleApiKey(): string | undefined {
-  const key = process.env.GOOGLE_API_KEY || process.env.GOOGLE_PLACES_API_KEY
-  console.log('[Places API] GOOGLE_API_KEY present:', !!key, 'length:', key?.length || 0)
-  return key
+  return process.env.GOOGLE_API_KEY || process.env.GOOGLE_PLACES_API_KEY
 }
 
 // Test action to verify Places API is working
@@ -140,7 +138,6 @@ export const searchNearby = action({
     
     // If no API key, return mock data filtered by query
     if (!apiKey) {
-      console.log('Using mock restaurant data (no GOOGLE_PLACES_API_KEY)')
       const lowerQuery = query.toLowerCase()
       return MOCK_RESTAURANTS.filter(
         (r) =>
@@ -271,7 +268,6 @@ export const searchNearbyInternal = internalAction({
     const apiKey = getGoogleApiKey()
     
     if (!apiKey) {
-      console.log('Using mock restaurant data (no GOOGLE_PLACES_API_KEY)')
       const lowerQuery = query.toLowerCase()
       return MOCK_RESTAURANTS.filter(
         (r) =>
