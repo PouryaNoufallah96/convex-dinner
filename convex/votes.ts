@@ -1,4 +1,4 @@
-import { mutation, query } from './_generated/server'
+import { mutation } from './_generated/server'
 import { v } from 'convex/values'
 
 export const toggle = mutation({
@@ -22,16 +22,5 @@ export const toggle = mutation({
       await ctx.db.insert('votes', { visitorId, visitorName, placeId })
       return { voted: true }
     }
-  },
-})
-
-export const getMyVotes = query({
-  args: { visitorId: v.string() },
-  handler: async (ctx, { visitorId }) => {
-    const votes = await ctx.db
-      .query('votes')
-      .filter((q) => q.eq(q.field('visitorId'), visitorId))
-      .collect()
-    return votes.map((v) => v.placeId)
   },
 })

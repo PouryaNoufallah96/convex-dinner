@@ -10,7 +10,6 @@ export interface ClientToolHandlers {
     name: string;
     zoom?: number;
   }) => void;
-  onShowRestaurantCard?: (params: { placeId: string; name: string }) => void;
   onHighlightShortlistItem?: (params: { placeId: string }) => void;
 }
 
@@ -51,12 +50,6 @@ export function useClientTools(
                 placeId: args.placeId as string,
                 name: args.name as string,
                 zoom: args.zoom as number | undefined,
-              });
-              break;
-            case "showRestaurantCard":
-              handlers.onShowRestaurantCard?.({
-                placeId: args.placeId as string,
-                name: args.name as string,
               });
               break;
             case "highlightShortlistItem":
