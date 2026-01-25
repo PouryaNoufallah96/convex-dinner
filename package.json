@@ -26,7 +26,8 @@
     "streamdown": "^1.6.5",
     "tailwindcss": "^4.0.6",
     "vite-tsconfig-paths": "^6.0.2",
-    "zod": "^4.3.5"
+    "zod": "^4.3.5",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@tanstack/devtools-event-client": "^0.4.0",

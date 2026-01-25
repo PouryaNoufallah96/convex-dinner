@@ -1,10 +1,26 @@
 import { useChatMessages, type UIMessage } from "./useChatMessages";
-import { useClientTools, type ClientToolHandlers } from "./useClientTools";
+import { useClientTools } from "./useClientTools";
+import { useMapStore } from "@/stores";
 
 // Composed hook for chat messages and client tools
-export function useDinnerChat(handlers: ClientToolHandlers = {}) {
+export function useDinnerChat() {
   const { messages, threadId, isLoading, isStreaming } = useChatMessages();
-  useClientTools(messages, handlers);
+
+  // Use map store actions for client tool handlers
+  const { panTo, highlightPlace } = useMapStore();
+
+  useClientTools(messages, {
+    onShowOnMap: ({ lat, lng, placeId, name, zoom }) => {
+      panTo({ lat, lng, name: name || "Restaurant" }, zoom || 15);
+      highlightPlace(placeId);
+    },
+    onShowRestaurantCard: ({ placeId }) => {
+      highlightPlace(placeId);
+    },
+    onHighlightShortlistItem: ({ placeId }) => {
+      highlightPlace(placeId);
+    },
+  });
 
   return {
     messages,
@@ -15,4 +31,4 @@ export function useDinnerChat(handlers: ClientToolHandlers = {}) {
 }
 
 // Re-export types for convenience
-export type { UIMessage, ClientToolHandlers };
+export type { UIMessage };

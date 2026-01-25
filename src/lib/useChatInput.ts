@@ -2,21 +2,21 @@ import { useCallback, useState } from "react";
 import { useAction } from "convex/react";
 
 import { api } from "../../convex/_generated/api";
-import type { UserLocation } from "@/lib/location";
+import { useVisitorStore, useLocationStore } from "@/stores";
 
 // Hook for managing chat input state and sending messages
-export function useChatInput(
-  threadId: string | null | undefined,
-  senderName: string,
-  userLocation: UserLocation,
-) {
+export function useChatInput(threadId: string | null | undefined) {
   const [input, setInput] = useState("");
   const sendMessageAction = useAction(api.chat.sendMessage);
+
+  // Get visitor and location from stores
+  const visitorName = useVisitorStore((s) => s.visitorName);
+  const userLocation = useLocationStore((s) => s.userLocation);
 
   // Send message function (handles trimming internally)
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
-    if (!trimmed || !threadId) {
+    if (!trimmed || !threadId || !visitorName) {
       return;
     }
 
@@ -25,11 +25,11 @@ export function useChatInput(
     await sendMessageAction({
       threadId,
       content: trimmed,
-      senderName,
+      senderName: visitorName,
       lat: userLocation.lat,
       lng: userLocation.lng,
     });
-  }, [input, threadId, sendMessageAction, senderName, userLocation]);
+  }, [input, threadId, sendMessageAction, visitorName, userLocation]);
 
   // Form submit handler
   const handleSubmit = useCallback(

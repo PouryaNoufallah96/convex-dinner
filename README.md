@@ -117,24 +117,25 @@ src/
 │   ├── Chat/            # Chat panel components
 │   ├── Map/             # Map components
 │   └── Shortlist/       # Voting components
+├── stores/              # Zustand stores
+│   ├── useVisitorStore.ts  # User identity state
+│   ├── useMapStore.ts      # Map state (center, zoom, highlight)
+│   └── useLocationStore.ts # User geolocation
 ├── lib/                 # Utilities and hooks
-│   ├── useDinnerChat.ts # Composed chat hook
-│   ├── useChatMessages.ts # Message subscription
-│   ├── useChatInput.ts  # Input state management
-│   ├── useClientTools.ts # Client-side tool handlers
-│   ├── visitor.ts       # User identity
-│   └── location.ts      # Geolocation
+│   ├── useDinnerChat.ts    # Composed chat hook
+│   ├── useChatMessages.ts  # Message subscription
+│   ├── useChatInput.ts     # Input state management
+│   ├── useClientTools.ts   # Client-side tool handlers
+│   └── location.ts         # Geolocation utilities
 ├── routes/              # TanStack Router routes
-│   ├── index.tsx        # Landing page
-│   ├── chat.tsx         # Main chat room
-│   └── api.chat.ts      # AI API endpoint
-└── data/                # Mock data
+│   └── index.tsx        # Main app page
 convex/
 ├── schema.ts            # Database schema
-├── messages.ts          # Message functions
+├── chat.ts              # Chat/thread functions
 ├── shortlist.ts         # Shortlist functions
 ├── votes.ts             # Voting functions
-└── places.ts            # Google Places actions
+├── places.ts            # Google Places actions
+└── dinnerAgent.ts       # AI agent definition
 ```
 
 ## License

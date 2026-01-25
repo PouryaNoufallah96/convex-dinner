@@ -1,32 +1,41 @@
-import { useQuery, useMutation } from 'convex/react'
-import { ListChecks, Loader2 } from 'lucide-react'
-import RestaurantCard from './RestaurantCard'
-import { api } from '../../../../convex/_generated/api'
+import { useQuery, useMutation } from "convex/react";
+import { ListChecks, Loader2 } from "lucide-react";
+import RestaurantCard from "./RestaurantCard";
+import { api } from "../../../../convex/_generated/api";
+import { useVisitorStore, useMapStore } from "@/stores";
 
-interface ShortlistPanelProps {
-  visitorId: string
-  visitorName: string
-  highlightedPlaceId?: string | null
-  onCardClick?: (placeId: string) => void
-}
+export default function ShortlistPanel() {
+  const shortlist = useQuery(api.shortlist.list);
+  const toggleVote = useMutation(api.votes.toggle);
+  const removeFromShortlist = useMutation(api.shortlist.remove);
 
-export default function ShortlistPanel({
-  visitorId,
-  visitorName,
-  highlightedPlaceId,
-  onCardClick,
-}: ShortlistPanelProps) {
-  const shortlist = useQuery(api.shortlist.list)
-  const toggleVote = useMutation(api.votes.toggle)
-  const removeFromShortlist = useMutation(api.shortlist.remove)
+  // Get state from stores
+  const { visitorId, visitorName } = useVisitorStore();
+  const { highlightedPlaceId, panTo, highlightPlace } = useMapStore();
 
   const handleVote = async (placeId: string) => {
-    await toggleVote({ visitorId, visitorName, placeId })
-  }
+    if (!visitorName) return;
+    await toggleVote({ visitorId, visitorName, placeId });
+  };
 
   const handleRemove = async (placeId: string) => {
-    await removeFromShortlist({ placeId })
-  }
+    await removeFromShortlist({ placeId });
+  };
+
+  const handleCardClick = (placeId: string) => {
+    const restaurant = shortlist?.find((r) => r.placeId === placeId);
+    if (restaurant) {
+      panTo(
+        {
+          lat: restaurant.lat,
+          lng: restaurant.lng,
+          name: restaurant.name,
+        },
+        15,
+      );
+      highlightPlace(placeId);
+    }
+  };
 
   if (shortlist === undefined) {
     return (
@@ -35,7 +44,7 @@ export default function ShortlistPanel({
           <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -46,7 +55,7 @@ export default function ShortlistPanel({
           Shortlist & Voting
           {shortlist.length > 0 && (
             <span className="text-sm text-gray-400 font-normal">
-              ({shortlist.length} restaurant{shortlist.length !== 1 ? 's' : ''})
+              ({shortlist.length} restaurant{shortlist.length !== 1 ? "s" : ""})
             </span>
           )}
         </h2>
@@ -59,9 +68,7 @@ export default function ShortlistPanel({
         <div className="p-6 text-center flex-1 flex flex-col items-center justify-center">
           <ListChecks className="w-10 h-10 text-gray-600 mb-2" />
           <p className="text-gray-400 text-sm">No restaurants shortlisted yet</p>
-          <p className="text-xs text-gray-500 mt-1">
-            Ask AI to add restaurants!
-          </p>
+          <p className="text-xs text-gray-500 mt-1">Ask AI to add restaurants!</p>
         </div>
       ) : (
         <div className="p-3 flex-1 overflow-auto">
@@ -81,12 +88,12 @@ export default function ShortlistPanel({
                 isHighlighted={highlightedPlaceId === restaurant.placeId}
                 onVote={() => handleVote(restaurant.placeId)}
                 onRemove={() => handleRemove(restaurant.placeId)}
-                onClick={() => onCardClick?.(restaurant.placeId)}
+                onClick={() => handleCardClick(restaurant.placeId)}
               />
             ))}
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

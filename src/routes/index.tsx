@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { LogOut, RotateCcw } from "lucide-react";
 
@@ -7,10 +7,11 @@ import ChatPanel from "@/components/dinner/Chat";
 import { RestaurantMap } from "@/components/dinner/Map";
 import { ShortlistPanel } from "@/components/dinner/Shortlist";
 import LoginDialog from "@/components/dinner/LoginDialog";
-import { getVisitorId, getVisitorName, clearVisitor } from "@/lib/visitor";
-import { getCachedLocation, type UserLocation } from "@/lib/location";
-import { DEFAULT_LOCATION } from "@/lib/location";
+
 import { useDinnerChat } from "@/lib/useDinnerChat";
+
+import { useVisitorStore, useLocationStore } from "@/stores";
+
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/")({
@@ -18,72 +19,23 @@ export const Route = createFileRoute("/")({
 });
 
 function DinnerPlans() {
-  // Visitor info
-  const [visitorId, setVisitorId] = useState("");
-  const [visitorName, setVisitorName] = useState<string | null>(null);
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [userLocation, setUserLocation] =
-    useState<UserLocation>(DEFAULT_LOCATION);
-
-  // Map state for client tools
-  const [mapCenter, setMapCenter] = useState(DEFAULT_LOCATION);
-  const [mapZoom, setMapZoom] = useState(13);
-  const [highlightedPlaceId, setHighlightedPlaceId] = useState<string | null>(
-    null
-  );
+  // Get state and actions from stores
+  const { visitorName, isInitialized, initialize, logout } = useVisitorStore();
+  const { fetchLocation } = useLocationStore();
 
   // Get shortlist for map pins
   const shortlist = useQuery(api.shortlist.list);
   const clearChat = useMutation(api.chat.clearChat);
   const clearShortlist = useMutation(api.shortlist.clear);
 
-  // Multi-user chat hook with client tool handlers
-  // Messages come from Convex subscription - all users see the same messages
-  const { messages, threadId, isLoading, isStreaming } = useDinnerChat({
-    onShowOnMap: ({ lat, lng, placeId, name, zoom }) => {
-      setMapCenter({ lat, lng, name: name || "Restaurant" });
-      setMapZoom(zoom || 15);
-      setHighlightedPlaceId(placeId);
-    },
-    onShowRestaurantCard: ({ placeId }) => {
-      setHighlightedPlaceId(placeId);
-    },
-    onHighlightShortlistItem: ({ placeId }) => {
-      setHighlightedPlaceId(placeId);
-    },
-  });
+  // Multi-user chat hook (now uses map store internally for client tools)
+  const { messages, threadId, isLoading, isStreaming } = useDinnerChat();
 
-  // Initialize visitor on mount
+  // Initialize on mount
   useEffect(() => {
-    const name = getVisitorName();
-    if (name) {
-      setVisitorId(getVisitorId());
-      setVisitorName(name);
-    } else {
-      setShowLoginDialog(true);
-    }
-    setIsInitialized(true);
-
-    // Get user location
-    getCachedLocation().then(setUserLocation);
-  }, []);
-
-  // Handle successful login
-  const handleLoginSuccess = useCallback((name: string) => {
-    setVisitorId(getVisitorId());
-    setVisitorName(name);
-    setShowLoginDialog(false);
-  }, []);
-
-
-  // Handle logout
-  const handleLogout = () => {
-    clearVisitor();
-    setVisitorName(null);
-    setVisitorId("");
-    setShowLoginDialog(true);
-  };
+    initialize();
+    fetchLocation();
+  }, [initialize, fetchLocation]);
 
   // Handle reset (clear all data)
   const handleReset = async () => {
@@ -114,10 +66,7 @@ function DinnerPlans() {
   if (!visitorName) {
     return (
       <div className="min-h-screen bg-linear-to-b from-gray-900 via-gray-900 to-gray-950">
-        <LoginDialog
-          open={showLoginDialog}
-          onSuccess={handleLoginSuccess}
-        />
+        <LoginDialog />
       </div>
     );
   }
@@ -125,12 +74,7 @@ function DinnerPlans() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Login Dialog for re-login */}
-      <LoginDialog
-        open={showLoginDialog}
-        onSuccess={handleLoginSuccess}
-        onClose={() => setShowLoginDialog(false)}
-        showCloseButton={!!visitorName}
-      />
+      <LoginDialog />
 
       {/* Header */}
       <header className="bg-gray-900 border-b border-gray-800 px-4 py-3">
@@ -153,7 +97,7 @@ function DinnerPlans() {
               <RotateCcw className="w-4 h-4" />
             </button>
             <button
-              onClick={handleLogout}
+              onClick={logout}
               className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
               title="Leave chat"
             >
@@ -174,8 +118,6 @@ function DinnerPlans() {
               isLoading={isLoading}
               isStreaming={isStreaming}
               threadId={threadId}
-              senderName={visitorName || ""}
-              userLocation={userLocation}
             />
           </div>
 
@@ -183,36 +125,12 @@ function DinnerPlans() {
           <div className="h-full min-h-0 flex flex-col gap-4">
             {/* Map - takes ~50% */}
             <div className="flex-1 min-h-0">
-              <RestaurantMap
-                restaurants={mapRestaurants}
-                highlightedPlaceId={highlightedPlaceId}
-                center={mapCenter}
-                zoom={mapZoom}
-                onPinClick={(placeId) => setHighlightedPlaceId(placeId)}
-              />
+              <RestaurantMap restaurants={mapRestaurants} />
             </div>
 
             {/* Shortlist - takes ~50% */}
             <div className="flex-1 min-h-0 overflow-auto">
-              <ShortlistPanel
-                visitorId={visitorId}
-                visitorName={visitorName}
-                highlightedPlaceId={highlightedPlaceId}
-                onCardClick={(placeId) => {
-                  const restaurant = shortlist?.find(
-                    (r) => r.placeId === placeId
-                  );
-                  if (restaurant) {
-                    setMapCenter({
-                      lat: restaurant.lat,
-                      lng: restaurant.lng,
-                      name: restaurant.name,
-                    });
-                    setMapZoom(15);
-                    setHighlightedPlaceId(placeId);
-                  }
-                }}
-              />
+              <ShortlistPanel />
             </div>
           </div>
         </div>
