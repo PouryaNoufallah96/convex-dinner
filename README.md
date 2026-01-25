@@ -118,8 +118,10 @@ src/
 │   ├── Map/             # Map components
 │   └── Shortlist/       # Voting components
 ├── lib/                 # Utilities and hooks
-│   ├── dinner-tools.ts  # AI tool definitions
-│   ├── useDinnerChat.ts
+│   ├── useDinnerChat.ts # Composed chat hook
+│   ├── useChatMessages.ts # Message subscription
+│   ├── useChatInput.ts  # Input state management
+│   ├── useClientTools.ts # Client-side tool handlers
 │   ├── visitor.ts       # User identity
 │   └── location.ts      # Geolocation
 ├── routes/              # TanStack Router routes

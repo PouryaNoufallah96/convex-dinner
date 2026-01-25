@@ -1,22 +1,26 @@
 import { Send, Loader2, Bot } from "lucide-react";
+import { useChatInput } from "@/lib/useChatInput";
+import type { UserLocation } from "@/lib/location";
 
 interface ChatInputProps {
-  input: string;
-  setInput: (value: string) => void;
-  handleSubmit: (e: React.FormEvent) => void;
-  mentionsAi: boolean;
-  canSend: boolean;
+  threadId: string | null | undefined;
+  senderName: string;
+  userLocation: UserLocation;
   isAiLoading?: boolean;
 }
 
 export default function ChatInput({
-  input,
-  setInput,
-  handleSubmit,
-  mentionsAi,
-  canSend,
+  threadId,
+  senderName,
+  userLocation,
   isAiLoading = false,
 }: ChatInputProps) {
+  const { input, setInput, handleSubmit, mentionsAi, canSend } = useChatInput(
+    threadId,
+    senderName,
+    userLocation,
+  );
+
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
       <div className="flex items-center gap-2">

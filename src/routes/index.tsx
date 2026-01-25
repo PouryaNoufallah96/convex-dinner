@@ -40,16 +40,7 @@ function DinnerPlans() {
 
   // Multi-user chat hook with client tool handlers
   // Messages come from Convex subscription - all users see the same messages
-  const {
-    messages,
-    isLoading,
-    isStreaming,
-    input,
-    setInput,
-    handleSubmit,
-    mentionsAi,
-    canSend,
-  } = useDinnerChat(visitorName || "", userLocation, {
+  const { messages, threadId, isLoading, isStreaming } = useDinnerChat({
     onShowOnMap: ({ lat, lng, placeId, name, zoom }) => {
       setMapCenter({ lat, lng, name: name || "Restaurant" });
       setMapZoom(zoom || 15);
@@ -182,11 +173,9 @@ function DinnerPlans() {
               messages={messages}
               isLoading={isLoading}
               isStreaming={isStreaming}
-              input={input}
-              setInput={setInput}
-              handleSubmit={handleSubmit}
-              mentionsAi={mentionsAi}
-              canSend={canSend}
+              threadId={threadId}
+              senderName={visitorName || ""}
+              userLocation={userLocation}
             />
           </div>
 

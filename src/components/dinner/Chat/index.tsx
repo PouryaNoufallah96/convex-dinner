@@ -1,27 +1,24 @@
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import type { UIMessage } from "@/lib/useDinnerChat";
+import type { UserLocation } from "@/lib/location";
 
 interface ChatPanelProps {
   messages: UIMessage[];
   isLoading: boolean;
   isStreaming?: boolean;
-  input: string;
-  setInput: (value: string) => void;
-  handleSubmit: (e: React.FormEvent) => void;
-  mentionsAi: boolean;
-  canSend: boolean;
+  threadId: string | null | undefined;
+  senderName: string;
+  userLocation: UserLocation;
 }
 
 export default function ChatPanel({
   messages,
   isLoading,
   isStreaming,
-  input,
-  setInput,
-  handleSubmit,
-  mentionsAi,
-  canSend,
+  threadId,
+  senderName,
+  userLocation,
 }: ChatPanelProps) {
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg border border-gray-800">
@@ -36,11 +33,9 @@ export default function ChatPanel({
       </div>
       <MessageList messages={messages} isLoading={isLoading} />
       <ChatInput
-        input={input}
-        setInput={setInput}
-        handleSubmit={handleSubmit}
-        mentionsAi={mentionsAi}
-        canSend={canSend}
+        threadId={threadId}
+        senderName={senderName}
+        userLocation={userLocation}
         isAiLoading={isLoading || isStreaming}
       />
     </div>
