@@ -120,7 +120,8 @@ src/
 ├── stores/              # Zustand stores
 │   ├── useVisitorStore.ts  # User identity state
 │   ├── useMapStore.ts      # Map state (center, zoom, highlight)
-│   └── useLocationStore.ts # User geolocation
+│   ├── useLocationStore.ts # User geolocation
+│   └── useChatStore.ts     # Chat state (threadId, messages, status)
 ├── lib/                 # Utilities and hooks
 │   ├── useDinnerChat.ts    # Composed chat hook
 │   ├── useChatMessages.ts  # Message subscription

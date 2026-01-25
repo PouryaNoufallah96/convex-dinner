@@ -2,14 +2,15 @@ import { useCallback, useState } from "react";
 import { useAction } from "convex/react";
 
 import { api } from "../../convex/_generated/api";
-import { useVisitorStore, useLocationStore } from "@/stores";
+import { useVisitorStore, useLocationStore, useThreadId } from "@/stores";
 
 // Hook for managing chat input state and sending messages
-export function useChatInput(threadId: string | null | undefined) {
+export function useChatInput() {
   const [input, setInput] = useState("");
   const sendMessageAction = useAction(api.chat.sendMessage);
 
-  // Get visitor and location from stores
+  // Get values from stores
+  const threadId = useThreadId();
   const visitorName = useVisitorStore((s) => s.visitorName);
   const userLocation = useLocationStore((s) => s.userLocation);
 

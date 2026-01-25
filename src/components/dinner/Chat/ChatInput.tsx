@@ -1,17 +1,10 @@
 import { Send, Loader2, Bot } from "lucide-react";
 import { useChatInput } from "@/lib/useChatInput";
+import { useAIStatus } from "@/stores";
 
-interface ChatInputProps {
-  threadId: string | null | undefined;
-  isAiLoading?: boolean;
-}
-
-export default function ChatInput({
-  threadId,
-  isAiLoading = false,
-}: ChatInputProps) {
-  const { input, setInput, handleSubmit, mentionsAi, canSend } =
-    useChatInput(threadId);
+export default function ChatInput() {
+  const { input, setInput, handleSubmit, mentionsAi, canSend } = useChatInput();
+  const { isAiLoading } = useAIStatus();
 
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">

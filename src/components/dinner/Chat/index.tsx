@@ -1,20 +1,11 @@
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
-import type { UIMessage } from "@/lib/useDinnerChat";
+import { useMessages, useAIStatus } from "@/stores";
 
-interface ChatPanelProps {
-  messages: UIMessage[];
-  isLoading: boolean;
-  isStreaming?: boolean;
-  threadId: string | null | undefined;
-}
+export default function ChatPanel() {
+  const messages = useMessages();
+  const { isLoading, isStreaming } = useAIStatus();
 
-export default function ChatPanel({
-  messages,
-  isLoading,
-  isStreaming,
-  threadId,
-}: ChatPanelProps) {
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg border border-gray-800">
       <div className="p-4 border-b border-gray-800">
@@ -27,7 +18,7 @@ export default function ChatPanel({
         )}
       </div>
       <MessageList messages={messages} isLoading={isLoading} />
-      <ChatInput threadId={threadId} isAiLoading={isLoading || isStreaming} />
+      <ChatInput />
     </div>
   );
 }

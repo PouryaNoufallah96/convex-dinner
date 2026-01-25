@@ -28,8 +28,8 @@ function DinnerPlans() {
   const clearChat = useMutation(api.chat.clearChat);
   const clearShortlist = useMutation(api.shortlist.clear);
 
-  // Multi-user chat hook (now uses map store internally for client tools)
-  const { messages, threadId, isLoading, isStreaming } = useDinnerChat();
+  // Set up chat subscription (syncs to store)
+  useDinnerChat();
 
   // Initialize on mount
   useEffect(() => {
@@ -113,12 +113,7 @@ function DinnerPlans() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-88px)]">
           {/* Left: Chat Panel */}
           <div className="h-full min-h-0">
-            <ChatPanel
-              messages={messages}
-              isLoading={isLoading}
-              isStreaming={isStreaming}
-              threadId={threadId}
-            />
+            <ChatPanel />
           </div>
 
           {/* Right: Map + Shortlist stacked */}
