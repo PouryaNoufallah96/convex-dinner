@@ -22,7 +22,6 @@ Available tools:
 - addToShortlist: Add a restaurant to the group's voting shortlist
 - removeFromShortlist: Remove a restaurant from the shortlist
 - showOnMap: Pan the map to show a restaurant's location
-- showRestaurantCard: Show detailed info card for a restaurant
 - highlightShortlistItem: Highlight a restaurant in the shortlist`;
 
 // Define tools using createTool for proper Convex context access
@@ -123,19 +122,6 @@ const showOnMap = createTool({
   },
 });
 
-const showRestaurantCard = createTool({
-  description:
-    "Display a detailed card/modal for a restaurant. Use when users want to see more details, reviews, or hours for a specific place.",
-  args: z.object({
-    placeId: z.string(),
-    name: z.string(),
-  }),
-  handler: async (): Promise<{ shown: boolean }> => {
-    // Client will handle the actual card display
-    return { shown: true };
-  },
-});
-
 const highlightShortlistItem = createTool({
   description:
     "Highlight a restaurant in the shortlist UI to draw attention to it.",
@@ -159,7 +145,6 @@ export const dinnerAgent = new Agent(components.agent, {
     addToShortlist,
     removeFromShortlist,
     showOnMap,
-    showRestaurantCard,
     highlightShortlistItem,
   },
   maxSteps: 5,

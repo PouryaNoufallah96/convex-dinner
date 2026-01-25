@@ -26,68 +26,6 @@ export const list = query({
   },
 })
 
-export const add = mutation({
-  args: {
-    placeId: v.string(),
-    name: v.string(),
-    address: v.string(),
-    cuisine: v.optional(v.string()),
-    rating: v.optional(v.number()),
-    priceLevel: v.optional(v.number()),
-    lat: v.number(),
-    lng: v.number(),
-    photoUrl: v.optional(v.string()),
-    addedBy: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // Check if already exists
-    const existing = await ctx.db
-      .query('shortlist')
-      .withIndex('by_placeId', (q) => q.eq('placeId', args.placeId))
-      .first()
-
-    if (existing) {
-      return { success: false, reason: 'Already on shortlist' }
-    }
-
-    await ctx.db.insert('shortlist', {
-      placeId: args.placeId,
-      name: args.name,
-      address: args.address,
-      cuisine: args.cuisine,
-      rating: args.rating,
-      priceLevel: args.priceLevel,
-      lat: args.lat,
-      lng: args.lng,
-      photoUrl: args.photoUrl,
-      addedBy: args.addedBy,
-    })
-
-    return { success: true }
-  },
-})
-
-export const remove = mutation({
-  args: { placeId: v.string() },
-  handler: async (ctx, { placeId }) => {
-    const item = await ctx.db
-      .query('shortlist')
-      .withIndex('by_placeId', (q) => q.eq('placeId', placeId))
-      .first()
-
-    if (item) {
-      // Also remove votes for this place
-      const votes = await ctx.db
-        .query('votes')
-        .withIndex('by_place', (q) => q.eq('placeId', placeId))
-        .collect()
-
-      await Promise.all(votes.map((v) => ctx.db.delete(v._id)))
-      await ctx.db.delete(item._id)
-    }
-  },
-})
-
 // Clear all shortlist items (useful for resetting demo)
 export const clear = mutation({
   args: {},

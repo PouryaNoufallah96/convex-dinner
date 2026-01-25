@@ -34,9 +34,6 @@ export function useDinnerChat() {
         panTo({ lat, lng, name: name || "Restaurant" }, zoom || 15);
         highlightPlace(placeId);
       },
-      onShowRestaurantCard: ({ placeId }: { placeId: string }) => {
-        highlightPlace(placeId);
-      },
       onHighlightShortlistItem: ({ placeId }: { placeId: string }) => {
         highlightPlace(placeId);
       },

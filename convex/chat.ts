@@ -101,31 +101,6 @@ export const sendMessage = action({
 });
 
 // List messages with streaming support
-// This query is reactive - clients subscribe and get updates automatically
-export const listMessages = query({
-  args: {
-    threadId: v.string(),
-    paginationOpts: paginationOptsValidator,
-    streamArgs: vStreamArgs,
-  },
-  handler: async (ctx, args) => {
-    // Get regular messages with pagination
-    const messages = await listUIMessages(ctx, components.agent, {
-      threadId: args.threadId,
-      paginationOpts: args.paginationOpts,
-    });
-
-    // Get any active streams (for live AI responses)
-    const streams = await syncStreams(ctx, components.agent, {
-      threadId: args.threadId,
-      streamArgs: args.streamArgs,
-    });
-
-    return { ...messages, streams };
-  },
-});
-
-// Simple message list with streaming support
 // useUIMessages requires paginationOpts to be accepted
 export const listAllMessages = query({
   args: {
