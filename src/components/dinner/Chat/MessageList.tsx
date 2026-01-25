@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import MessageBubble from "./MessageBubble";
-import type { UIMessage } from "@/lib/dinner-chat-hook";
+import type { UIMessage } from "@/lib/useDinnerChat";
 
 interface MessageListProps {
   messages: UIMessage[];

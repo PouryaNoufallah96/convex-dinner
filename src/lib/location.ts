@@ -1,8 +1,14 @@
-import { DEFAULT_LOCATION } from '@/data/mock-restaurants'
-
 export interface UserLocation {
   lat: number
   lng: number
+  name?: string
+}
+
+// Default location: Portland, OR
+export const DEFAULT_LOCATION: UserLocation = {
+  lat: 45.5152,
+  lng: -122.6784,
+  name: 'Portland, OR',
 }
 
 export async function getUserLocation(): Promise<UserLocation> {

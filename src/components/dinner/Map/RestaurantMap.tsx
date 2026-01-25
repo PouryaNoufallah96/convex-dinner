@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { MapPin, ZoomIn, ZoomOut, Navigation } from 'lucide-react'
-import { DEFAULT_LOCATION } from '@/data/mock-restaurants'
+import { DEFAULT_LOCATION } from '@/lib/location'
 
 // Google Maps imports - only used when API key is available
 import {
@@ -26,11 +26,8 @@ interface RestaurantMapProps {
   onPinClick?: (placeId: string) => void
 }
 
-// Get Google Maps API key from environment (check multiple possible names)
-const GOOGLE_MAPS_API_KEY = 
-  (import.meta as any).env?.VITE_GOOGLE_API_KEY || 
-  (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || 
-  ''
+// Get Google Maps API key from environment
+const GOOGLE_MAPS_API_KEY = (import.meta as any).env?.VITE_GOOGLE_API_KEY || ''
 
 
 // Component to handle API authentication errors
@@ -78,7 +75,7 @@ function MockMap({
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <MapPin className="w-5 h-5 text-amber-500" />
           Restaurant Map
-          <span className="text-xs text-gray-500 font-normal">(Mock - add VITE_GOOGLE_API_KEY for real map)</span>
+          <span className="text-xs text-gray-500 font-normal">(Add VITE_GOOGLE_API_KEY for real map)</span>
         </h2>
       </div>
 

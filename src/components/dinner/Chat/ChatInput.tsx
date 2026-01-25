@@ -1,39 +1,22 @@
-import { useState, useCallback } from "react";
 import { Send, Loader2, Bot } from "lucide-react";
 
 interface ChatInputProps {
-  visitorName: string;
-  onSendToAi: (message: string) => void;
+  input: string;
+  setInput: (value: string) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+  mentionsAi: boolean;
+  canSend: boolean;
   isAiLoading?: boolean;
 }
 
 export default function ChatInput({
-  visitorName: _visitorName,
-  onSendToAi,
+  input,
+  setInput,
+  handleSubmit,
+  mentionsAi,
+  canSend,
   isAiLoading = false,
 }: ChatInputProps) {
-  const [input, setInput] = useState("");
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      const trimmed = input.trim();
-      if (!trimmed) return;
-
-      // All messages go through the Convex Agent action
-      // The action will save the message to the thread
-      // If @ai is mentioned, it will also trigger AI response
-      onSendToAi(trimmed);
-
-      setInput("");
-    },
-    [input, onSendToAi],
-  );
-
-  const mentionsAi =
-    input.toLowerCase().includes("@ai") ||
-    input.toLowerCase().startsWith("ai ");
-
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
       <div className="flex items-center gap-2">
@@ -54,7 +37,7 @@ export default function ChatInput({
         </div>
         <button
           type="submit"
-          disabled={!input.trim() || isAiLoading}
+          disabled={!canSend || isAiLoading}
           className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500 text-white p-3 rounded-lg transition-colors"
         >
           {isAiLoading ? (

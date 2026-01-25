@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { LogOut, RotateCcw } from "lucide-react";
 
@@ -9,8 +9,8 @@ import { ShortlistPanel } from "@/components/dinner/Shortlist";
 import LoginDialog from "@/components/dinner/LoginDialog";
 import { getVisitorId, getVisitorName, clearVisitor } from "@/lib/visitor";
 import { getCachedLocation, type UserLocation } from "@/lib/location";
-import { DEFAULT_LOCATION } from "@/data/mock-restaurants";
-import { useDinnerChat } from "@/lib/dinner-chat-hook";
+import { DEFAULT_LOCATION } from "@/lib/location";
+import { useDinnerChat } from "@/lib/useDinnerChat";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/")({
@@ -40,23 +40,28 @@ function DinnerPlans() {
 
   // Multi-user chat hook with client tool handlers
   // Messages come from Convex subscription - all users see the same messages
-  const { messages, sendMessage, isLoading, isStreaming } = useDinnerChat(
-    visitorName || "",
-    userLocation,
-    {
-      onShowOnMap: ({ lat, lng, placeId, name, zoom }) => {
-        setMapCenter({ lat, lng, name: name || "Restaurant" });
-        setMapZoom(zoom || 15);
-        setHighlightedPlaceId(placeId);
-      },
-      onShowRestaurantCard: ({ placeId }) => {
-        setHighlightedPlaceId(placeId);
-      },
-      onHighlightShortlistItem: ({ placeId }) => {
-        setHighlightedPlaceId(placeId);
-      },
-    }
-  );
+  const {
+    messages,
+    isLoading,
+    isStreaming,
+    input,
+    setInput,
+    handleSubmit,
+    mentionsAi,
+    canSend,
+  } = useDinnerChat(visitorName || "", userLocation, {
+    onShowOnMap: ({ lat, lng, placeId, name, zoom }) => {
+      setMapCenter({ lat, lng, name: name || "Restaurant" });
+      setMapZoom(zoom || 15);
+      setHighlightedPlaceId(placeId);
+    },
+    onShowRestaurantCard: ({ placeId }) => {
+      setHighlightedPlaceId(placeId);
+    },
+    onHighlightShortlistItem: ({ placeId }) => {
+      setHighlightedPlaceId(placeId);
+    },
+  });
 
   // Initialize visitor on mount
   useEffect(() => {
@@ -80,13 +85,6 @@ function DinnerPlans() {
     setShowLoginDialog(false);
   }, []);
 
-  // Handle sending message
-  const handleSendMessage = useCallback(
-    (message: string) => {
-      sendMessage(message);
-    },
-    [sendMessage]
-  );
 
   // Handle logout
   const handleLogout = () => {
@@ -181,11 +179,14 @@ function DinnerPlans() {
           {/* Left: Chat Panel */}
           <div className="h-full min-h-0">
             <ChatPanel
-              visitorName={visitorName}
-              onSendMessage={handleSendMessage}
+              messages={messages}
               isLoading={isLoading}
               isStreaming={isStreaming}
-              messages={messages}
+              input={input}
+              setInput={setInput}
+              handleSubmit={handleSubmit}
+              mentionsAi={mentionsAi}
+              canSend={canSend}
             />
           </div>
 

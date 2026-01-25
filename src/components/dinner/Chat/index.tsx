@@ -1,21 +1,27 @@
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
-import type { UIMessage } from "@/lib/dinner-chat-hook";
+import type { UIMessage } from "@/lib/useDinnerChat";
 
 interface ChatPanelProps {
-  visitorName: string;
-  onSendMessage: (message: string) => void;
+  messages: UIMessage[];
   isLoading: boolean;
   isStreaming?: boolean;
-  messages: UIMessage[];
+  input: string;
+  setInput: (value: string) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+  mentionsAi: boolean;
+  canSend: boolean;
 }
 
 export default function ChatPanel({
-  visitorName,
-  onSendMessage,
+  messages,
   isLoading,
   isStreaming,
-  messages,
+  input,
+  setInput,
+  handleSubmit,
+  mentionsAi,
+  canSend,
 }: ChatPanelProps) {
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg border border-gray-800">
@@ -30,8 +36,11 @@ export default function ChatPanel({
       </div>
       <MessageList messages={messages} isLoading={isLoading} />
       <ChatInput
-        visitorName={visitorName}
-        onSendToAi={onSendMessage}
+        input={input}
+        setInput={setInput}
+        handleSubmit={handleSubmit}
+        mentionsAi={mentionsAi}
+        canSend={canSend}
         isAiLoading={isLoading || isStreaming}
       />
     </div>

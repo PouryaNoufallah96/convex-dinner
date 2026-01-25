@@ -55,9 +55,9 @@ VITE_CONVEX_URL=https://<your-deployment>.convex.cloud
 # AI Provider
 ANTHROPIC_API_KEY=<your-anthropic-key>
 
-# Google APIs (same key works for both)
-GOOGLE_API_KEY=<your-google-key>           # For Convex Places API (server-side)
-VITE_GOOGLE_API_KEY=<your-google-key>      # For Google Maps (client-side)
+# Google API (one key for Places API and Maps)
+GOOGLE_API_KEY=<your-google-key>           # Server-side (Convex Places API)
+VITE_GOOGLE_API_KEY=<your-google-key>      # Client-side (Google Maps)
 ```
 
 **Google Cloud Setup:**
@@ -99,9 +99,9 @@ The AI assistant can:
 
 ## Development Notes
 
-### Mock Data
+### API Keys Required
 
-When running without Google API keys, the app uses mock restaurant data centered around Portland, OR. The mock data includes 10 sample restaurants with realistic details.
+The Google API keys (`GOOGLE_API_KEY` for server-side and `VITE_GOOGLE_API_KEY` for client-side) are required for the app to function. Without them, restaurant search will return empty results and the map will show a placeholder.
 
 ### Convex Schema
 
@@ -119,7 +119,7 @@ src/
 │   └── Shortlist/       # Voting components
 ├── lib/                 # Utilities and hooks
 │   ├── dinner-tools.ts  # AI tool definitions
-│   ├── dinner-chat-hook.ts
+│   ├── useDinnerChat.ts
 │   ├── visitor.ts       # User identity
 │   └── location.ts      # Geolocation
 ├── routes/              # TanStack Router routes
